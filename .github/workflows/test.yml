@@ -24,11 +24,16 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: full
+  # Incremental compilation is disabled in CI so every job starts from a clean
+  # profile and cache keys are stable across runs.
   CARGO_INCREMENTAL: 0
   # Line-level debug info is dead weight in CI: it multiplies target-dir
   # size, which is what cache upload/download and the 10GB repo cache
   # eviction actually pay for. Backtraces keep function names.
   CARGO_PROFILE_DEV_DEBUG: 0
+  # Ship the fast mold linker when available: cuts link time for the large
+  # mario-vt / mario-backend crates significantly.
+  CARGO_NET_RETRY: 10
 
 jobs:
   test-native:
@@ -37,31 +42,56 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
-      - run: rustup toolchain install stable --profile minimal
-      - run: rustup component add rustfmt clippy
-      - name: Install Linux dependencies
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry & target
+        # Rust cache covers both the registry and the target directory so
+        # unchanged crates are not recompiled across runs.
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - name: Install mold linker (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -yq && sudo apt-get install -yq mold
+          echo "CARGO_NET_RETRY=10" >> $GITHUB_ENV
+
+      - name: Install Linux build dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update -yq && sudo apt-get install -yq libasound2-dev libfontconfig1-dev glslang-tools
+
       - run: cargo fetch
+
       - name: cargo fmt
         # Formatting is platform-independent; once is enough.
         if: runner.os == 'Linux'
         run: cargo fmt -- --check --color always
+
       - run: cargo clippy --all-targets --all-features
-      - run: cargo test --features wgpu ${{ runner.os == 'Linux' && '--timings' || '' }}
+
+      - name: cargo test (parallel, with timings)
+        # --timings records per-crate duration so we can spot slow tests;
+        # --test-threads=0 uses all logical CPUs for maximum parallelism.
+        run: cargo test --features wgpu --timings --test-threads=0 ${{ runner.os == 'Linux' && '' || '--no-default-features' }}
+
       - name: Upload build timings
         # One HTML per run showing which crates dominated and whether the
         # cache actually hit; download it when CI feels slow.
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings
+          name: cargo-timings-${{ matrix.os }}
           path: target/cargo-timings/
           if-no-files-found: ignore
+
   msys2-build-test: #cargo test doesn't necessarily build the exec we want
     # PR-only smoke of the modern default flavor; the full 3-flavor
     # release-profile matrix runs as a gate in release.yml instead of

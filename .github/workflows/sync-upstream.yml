@@ -1,0 +1,72 @@
+name: Sync Upstream Rio
+
+on:
+  schedule:
+    # Weekly sync every Monday 02:00 UTC.
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Target mario branch to sync into'
+        required: true
+        default: 'feat/rename-rio-to-mario'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  sync:
+    name: Sync upstream/main into mario
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout mario branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.branch || 'feat/rename-rio-to-mario' }}
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "mario-bot"
+          git config user.email "mario-bot@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/raphamorim/rio.git || true
+
+      - name: Fetch upstream
+        run: git fetch upstream --tags
+
+      - name: Try fast-forward sync
+        id: sync
+        run: |
+          set +e
+          TARGET_BRANCH="${{ github.event.inputs.branch || 'feat/rename-rio-to-mario' }}"
+          git checkout "$TARGET_BRANCH"
+          # Attempt to merge upstream/main. Conflicts are expected because
+          # mario renames rio-* -> mario-*; those need manual resolution.
+          if git merge --no-commit --no-ff -m "chore: sync upstream rio ($(date +%F))" upstream/main; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+            git commit -m "chore: sync upstream rio ($(date +%F))"
+            git push origin "$TARGET_BRANCH"
+          else
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+            git merge --abort 2>/dev/null || true
+          fi
+
+      - name: Report sync result
+        if: steps.sync.outputs.merged == 'false'
+        run: |
+          echo "::warning::Upstream sync could not be auto-merged."
+          echo "Conflicts are expected where upstream rio files were renamed to mario-*"
+          echo "or where mario-specific changes diverge. Resolve manually with:"
+          echo "  ./misc/scripts/sync-upstream.sh"
+          exit 0
+
+      - name: Comment on sync success
+        if: steps.sync.outputs.merged == 'true'
+        run: |
+          echo "Upstream rio changes synced into ${{ github.event.inputs.branch || 'feat/rename-rio-to-mario' }}."
