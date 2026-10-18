@@ -69,7 +69,7 @@ pub struct VulkanRenderer {
     /// `Screen.grids`) is dropped, so this renderer's `Drop` can
     /// safely tear down pipelines regardless of struct field-order
     /// elsewhere — fixes the cross-struct ordering trap behind
-    /// raphamorim/rio#1568. Also lets `render_quads` allocate from
+    /// raphamorim/mario#1568. Also lets `render_quads` allocate from
     /// `&mut self` without needing a live `&VulkanContext` borrow.
     /// See `VkShared`.
     shared: Arc<VkShared>,

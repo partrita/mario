@@ -1,10 +1,10 @@
 extern crate png;
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-use rio_window::event::WindowEvent;
-use rio_window::event_loop::ControlFlow;
-use rio_window::platform::run_on_demand::EventLoopExtRunOnDemand;
-use rio_window::{
+use mario_window::event::WindowEvent;
+use mario_window::event_loop::ControlFlow;
+use mario_window::platform::run_on_demand::EventLoopExtRunOnDemand;
+use mario_window::{
     dpi::LogicalSize, event::Event, event_loop::EventLoop, window::WindowAttributes,
 };
 use sugarloaf::layout::RootStyle;

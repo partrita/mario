@@ -1,0 +1,59 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+   <Package
+      Name="Mario"
+      UpgradeCode="87c21c74-dbd5-4584-89d5-46d9cd0c40a8"
+      Language="1033"
+      Codepage="1252"
+      Version="{{ .Version }}"
+      Manufacturer="Raphael Amorim"
+      InstallerVersion="200">
+
+      <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+      <WixVariable Id="WixUILicenseRtf" Value=".\misc\windows\License.rtf" />
+      <Icon Id="MarioIcon" SourceFile=".\misc\windows\mario.ico" />
+      <Property Id="APPRODUCTICON" Value="MarioIcon" />
+      <MediaTemplate EmbedCab="yes" />
+      <ui:WixUI Id="WixUI_Minimal" />
+      <Feature Id="ProductFeature" Title="ConsoleApp" Level="1">
+         <ComponentRef Id="MarioExe" />
+         <ComponentRef Id="MarioShortcut" />
+         <ComponentRef Id="ModifyPathEnv" />
+         <ComponentRef Id="ContextMenu" />
+      </Feature>
+      <!-- Application binaries -->
+      <DirectoryRef Id="MarioProgramFiles">
+         <Component Id="MarioExe">
+            <File Id="MarioExeFile" Source="{{ .Binary }}.exe" Name="mario.exe" KeyPath="yes" />
+         </Component>
+      </DirectoryRef>
+      <DirectoryRef Id="MarioProgramMenu">
+         <!-- Application shortcut -->
+         <Component Id="MarioShortcut" Guid="aa36e61a-23cd-4383-b744-2f78e912f0dc">
+            <Shortcut Id="MarioShortcutFile" Name="Mario" Description="A hardware-accelerated GPU terminal emulator" Target="[MarioProgramFiles]mario.exe" Icon="MarioIcon" />
+            <RemoveFolder Id="MarioProgramMenu" On="uninstall" />
+            <RegistryValue Root="HKCU" Key="Software\Microsoft\Mario" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+         </Component>
+      </DirectoryRef>
+      <DirectoryRef Id="MarioProgramFiles">
+         <!-- Add to PATH -->
+         <Component Id="ModifyPathEnv" Guid="edf0b679-9eb6-46f7-a5d1-5160f30acb34" KeyPath="yes">
+            <Environment Id="PathEnv" Value="[MarioProgramFiles]" Name="PATH" Permanent="no" Part="first" Action="set" System="yes" />
+         </Component>
+      </DirectoryRef>
+      <StandardDirectory Id="ProgramFiles64Folder">
+         <Directory Id="MarioProgramFiles" Name="Mario" />
+      </StandardDirectory>
+      <StandardDirectory Id="ProgramMenuFolder">
+         <Directory Id="MarioProgramMenu" Name="Mario" />
+      </StandardDirectory>
+      <!-- Add context menu -->
+      <Component Id="ContextMenu" Guid="449f9121-f7b9-41fe-82da-52349ea8ff91" Directory="TARGETDIR">
+         <RegistryKey Root="HKCU" Key="Software\Classes\Directory\Background\shell\Open Mario here\command">
+            <RegistryValue Type="string" Value='[MarioProgramFiles]mario.exe --working-dir "%v"' KeyPath="yes" />
+         </RegistryKey>
+         <RegistryKey Root="HKCU" Key="Software\Classes\Directory\Background\shell\Open Mario here">
+            <RegistryValue Type="string" Name="Icon" Value="[MarioProgramFiles]mario.exe" />
+         </RegistryKey>
+      </Component>
+   </Package>
+</Wix>

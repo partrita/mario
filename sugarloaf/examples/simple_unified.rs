@@ -2,11 +2,11 @@
 // Run with: cargo run --example simple_unified
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-use rio_window::application::ApplicationHandler;
-use rio_window::event_loop::ControlFlow;
-use rio_window::event_loop::{ActiveEventLoop, DeviceEvents};
-use rio_window::window::{Window, WindowId};
-use rio_window::{
+use mario_window::application::ApplicationHandler;
+use mario_window::event_loop::ControlFlow;
+use mario_window::event_loop::{ActiveEventLoop, DeviceEvents};
+use mario_window::window::{Window, WindowId};
+use mario_window::{
     dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop, window::WindowAttributes,
 };
 use std::error::Error;
@@ -15,7 +15,7 @@ use sugarloaf::{layout::RootStyle, Sugarloaf, SugarloafWindow, SugarloafWindowSi
 fn main() {
     let width = 800.0;
     let height = 600.0;
-    let window_event_loop = rio_window::event_loop::EventLoop::new().unwrap();
+    let window_event_loop = mario_window::event_loop::EventLoop::new().unwrap();
     let mut application = Application::new(&window_event_loop, width, height);
     let _ = application.run(window_event_loop);
 }

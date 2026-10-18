@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please report security issues privately, through
-[**Report a vulnerability**](https://github.com/raphamorim/rio/security/advisories/new)
+[**Report a vulnerability**](https://github.com/raphamorim/mario/security/advisories/new)
 on the repository's Security tab. It opens a draft advisory that only you and
 the maintainers can read.
 
@@ -28,11 +28,11 @@ unsure about; a partial report is worth more than a silent one.
 
 ## Scope
 
-The application: **Rio** (Linux, macOS, Windows, BSD).
+The application: **Mario** (Linux, macOS, Windows, BSD).
 
 The published crates, whose embedders inherit anything wrong in them:
-`rio-vt`, `librio`, `sugarloaf`, `rio-backend`, `rio-window`, `rio-graphics`,
-`rio-fonts`, `rio-grapheme-width`, `rio-notifier`, `teletypewriter`,
+`mario-vt`, `libmario`, `sugarloaf`, `mario-backend`, `mario-window`, `mario-graphics`,
+`mario-fonts`, `mario-grapheme-width`, `mario-notifier`, `teletypewriter`,
 `corcovado`.
 
 A terminal's central risk is that the bytes it renders are not trusted: they
@@ -56,7 +56,7 @@ user, and configuration files the user wrote themselves.
 
 ## Supported versions
 
-Rio is pre-1.0 and moves quickly. Fixes land in the next release, on the
+Mario is pre-1.0 and moves quickly. Fixes land in the next release, on the
 latest version only; there are no backports to earlier ones. Please check
 against the latest release before reporting.
 

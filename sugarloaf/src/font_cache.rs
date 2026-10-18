@@ -5,7 +5,7 @@
 
 use crate::sugarloaf::primitives::is_private_user_area;
 use crate::SpanStyle;
-use rio_unicode::UnicodeWidthChar;
+use mario_unicode::UnicodeWidthChar;
 use rustc_hash::FxHashMap;
 use swash::Attributes;
 

@@ -10,7 +10,7 @@ use winit::{
 pub fn main() -> Result<(), impl std::error::Error> {
     let event_loop = EventLoop::new().unwrap();
 
-    let builder = WindowBuilder::new().with_title("Rio Wasm");
+    let builder = WindowBuilder::new().with_title("Mario Wasm");
     #[cfg(target_arch = "wasm32")]
     let builder = {
         use winit::platform::web::WindowBuilderExtWebSys;

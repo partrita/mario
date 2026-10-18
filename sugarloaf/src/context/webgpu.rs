@@ -113,7 +113,7 @@ impl<'a> WgpuContext<'a> {
             futures::executor::block_on(instance.request_adapter(
                 &wgpu::RequestAdapterOptions {
                     // Hard-coded — sugarloaf used to expose a
-                    // `power_preference` knob, but in practice every Rio
+                    // `power_preference` knob, but in practice every Mario
                     // user picks `HighPerformance` (the alternative gives
                     // visibly worse text on hybrid laptops). Removed from
                     // the public API.

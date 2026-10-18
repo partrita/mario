@@ -53,7 +53,7 @@ pub struct CellText {
     /// Glyph bitmap size (w, h) in atlas pixels.
     pub glyph_size: [u32; 2],
     /// Font bearings (x-left, y-bottom), relative to the grid cell
-    /// origin, in pixels. `i16` matches ; if Rio's font metrics
+    /// origin, in pixels. `i16` matches ; if Mario's font metrics
     /// ever exceed ±32k pixels we have bigger problems.
     pub bearings: [i16; 2],
     /// Terminal grid position (col, row). `u16` caps at 65535 which

@@ -1,12 +1,12 @@
 {
-  description = "Rio | A hardware-accelerated GPU terminal emulator";
+  description = "Mario | A hardware-accelerated GPU terminal emulator";
 
   # Binary cache populated by CI on every merge to main; nix offers to
-  # enable it on first use so `nix run github:raphamorim/rio` becomes a
+  # enable it on first use so `nix run github:raphamorim/mario` becomes a
   # download instead of a build.
   nixConfig = {
-    extra-substituters = ["https://rioterm.cachix.org"];
-    extra-trusted-public-keys = ["rioterm.cachix.org-1:cs/H9Jf0ZpHyR4WgjoNJZVBpkVi69Y4JASUK5ReEQPE="];
+    extra-substituters = ["https://marioterm.cachix.org"];
+    extra-trusted-public-keys = ["marioterm.cachix.org-1:cs/H9Jf0ZpHyR4WgjoNJZVBpkVi69Y4JASUK5ReEQPE="];
   };
 
   inputs = {
@@ -34,9 +34,9 @@
         # Defines a devshell using the `rust-toolchain`, allowing for
         # different versions of rust to be used.
         mkDevShell = rust-toolchain: let
-          runtimeDeps = self'.packages.rio.runtimeDependencies;
+          runtimeDeps = self'.packages.mario.runtimeDependencies;
           tools =
-            self'.packages.rio.nativeBuildInputs ++ self'.packages.rio.buildInputs ++ [rust-toolchain];
+            self'.packages.mario.nativeBuildInputs ++ self'.packages.mario.buildInputs ++ [rust-toolchain];
         in
           pkgs.mkShell {
             packages = [self'.formatter] ++ tools;
@@ -46,8 +46,8 @@
           msrv = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
           stable = pkgs.rust-bin.stable.latest.minimal;
           nightly = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.minimal);
-          rio = msrv;
-          default = rio;
+          mario = msrv;
+          default = mario;
         };
       in {
         formatter = pkgs.alejandra;
@@ -56,16 +56,16 @@
           overlays = [(import inputs.rust-overlay)];
         };
 
-        # Create overlay to override `rio` with this flake's default
-        overlayAttrs = {inherit (self'.packages) rio;};
+        # Create overlay to override `mario` with this flake's default
+        overlayAttrs = {inherit (self'.packages) mario;};
         packages =
           lib.mapAttrs' (
             k: v: {
               name =
-                if builtins.elem k ["rio" "default"]
+                if builtins.elem k ["mario" "default"]
                 then k
-                else "rio-${k}";
-              value = pkgs.callPackage ./pkgRio.nix {rust-toolchain = v;};
+                else "mario-${k}";
+              value = pkgs.callPackage ./pkgMario.nix {rust-toolchain = v;};
             }
           )
           toolchains;

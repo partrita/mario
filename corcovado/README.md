@@ -1,6 +1,6 @@
 # Corcovado
 
-Corcovado is a maintained fork of mio 0.6.x (along mio-signal-hook and mio-extras) trimmed down to what Rio's PTY event loop needs:
+Corcovado is a maintained fork of mio 0.6.x (along mio-signal-hook and mio-extras) trimmed down to what Mario's PTY event loop needs:
 
 - `Poll`/`Events` readiness polling backed by epoll, kqueue, and IOCP (works on Windows 11).
 - A pollable cross-thread `channel`.

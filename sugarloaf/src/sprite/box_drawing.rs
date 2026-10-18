@@ -59,7 +59,7 @@ pub(super) enum Corner {
 }
 
 /// Base "light" line thickness in pixels, derived from the cell height
-/// so box strokes match Rio's underline thickness (`size_px * 0.075`,
+/// so box strokes match Mario's underline thickness (`size_px * 0.075`,
 /// and a cell is roughly `size_px * 1.2` tall, hence `cell_h / 16`).
 #[inline]
 pub(super) fn box_thickness(cell_h: u32) -> u32 {

@@ -5,7 +5,7 @@
 
 // The graphic value types (GraphicData, GraphicId, ColorType, Resize*,
 // GraphicOverlay, the image-key hashers) now live in the leaf crate
-// `rio-graphics` so the terminal core can model images without pulling
+// `mario-graphics` so the terminal core can model images without pulling
 // the renderer. They are re-exported here so `sugarloaf::graphics::*` and
 // `sugarloaf::GraphicData` keep resolving. Only the render cache
 // (GraphicDataEntry / Graphics), which owns a GPU-uploadable Handle,
@@ -14,7 +14,7 @@
 use crate::sugarloaf::Handle;
 use rustc_hash::FxHashMap;
 
-pub use rio_graphics::{
+pub use mario_graphics::{
     atlas_image_key, image_key_route, kitty_image_key, route_image_key, ColorType,
     Graphic, GraphicData, GraphicId, GraphicOverlay, ResizeCommand, ResizeParameter,
     MAX_GRAPHIC_DIMENSIONS,

@@ -9,11 +9,11 @@
 /// - Green (order=1) renders second (middle)
 /// - Blue (order=2) renders last (top)
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-use rio_window::application::ApplicationHandler;
-use rio_window::event_loop::ControlFlow;
-use rio_window::event_loop::{ActiveEventLoop, DeviceEvents};
-use rio_window::window::{Window, WindowId};
-use rio_window::{
+use mario_window::application::ApplicationHandler;
+use mario_window::event_loop::ControlFlow;
+use mario_window::event_loop::{ActiveEventLoop, DeviceEvents};
+use mario_window::window::{Window, WindowId};
+use mario_window::{
     dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop, window::WindowAttributes,
 };
 use std::error::Error;
@@ -24,7 +24,7 @@ use sugarloaf::{
 fn main() {
     let width = 400.0;
     let height = 300.0;
-    let window_event_loop = rio_window::event_loop::EventLoop::new().unwrap();
+    let window_event_loop = mario_window::event_loop::EventLoop::new().unwrap();
     let mut application = Application::new(&window_event_loop, width, height);
     let _ = application.run(window_event_loop);
 }

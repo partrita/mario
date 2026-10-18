@@ -1,0 +1,4 @@
+module MarioKit {
+    umbrella header "libmario.h"
+    export *
+}

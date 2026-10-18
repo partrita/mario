@@ -12,11 +12,11 @@ use raw_window_handle::{
     AppKitDisplayHandle, AppKitWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
 // Color / style types the grid-emit palette resolves against. These are
-// `rio_vt` re-exports; rio-grid names them via `rio_backend`, which
+// `mario_vt` re-exports; mario-grid names them via `mario_backend`, which
 // re-exports the same crate, so they're the identical nominal types.
-use rio_vt::config::colors::term::{List, TermColors, DIM_FACTOR};
-use rio_vt::config::colors::{AnsiColor, ColorArray, ColorWGPU, Colors, NamedColor};
-use rio_vt::crosswords::style::{Style, StyleFlags};
+use mario_vt::config::colors::term::{List, TermColors, DIM_FACTOR};
+use mario_vt::config::colors::{AnsiColor, ColorArray, ColorWGPU, Colors, NamedColor};
+use mario_vt::crosswords::style::{Style, StyleFlags};
 use sugarloaf::font::fonts::SugarloafFonts;
 use sugarloaf::font::FontLibrary;
 use sugarloaf::grid::atlas::{GlyphKey, RasterizedGlyph};
@@ -40,12 +40,12 @@ use sugarloaf::{
 /// point keeps calling `Sugarloaf` methods and reading its fields directly.
 pub struct Sl {
     inner: Sugarloaf<'static>,
-    rasterizer: rio_grid::GridGlyphRasterizer,
+    rasterizer: mario_grid::GridGlyphRasterizer,
     font_size: f32,
     line_height: f32,
     scale: f32,
     /// The color theme the grid-emit path resolves cells against. Starts on
-    /// Rio's default theme; the host overrides it with `sl_set_theme`.
+    /// Mario's default theme; the host overrides it with `sl_set_theme`.
     palette: HostPalette,
     /// Whether the last frame carried a selection, so the frame after it
     /// clears still repaints those rows to drop the tint.
@@ -69,13 +69,13 @@ pub struct Sl {
 }
 
 /// The selected column interval on visible row `y`, from the render state's
-/// (already viewport-relative) selection. Bypasses rio_grid::row_selection_for,
+/// (already viewport-relative) selection. Bypasses mario_grid::row_selection_for,
 /// which wants an absolute SelectionRange + display_offset.
 fn row_selection_from(
-    sel: Option<librio::ViewportSelection>,
+    sel: Option<libmario::ViewportSelection>,
     y: u16,
     cols: usize,
-) -> Option<rio_grid::RowSelection> {
+) -> Option<mario_grid::RowSelection> {
     let sel = sel?;
     if cols == 0 || y < sel.start_line || y > sel.end_line {
         return None;
@@ -85,7 +85,7 @@ fn row_selection_from(
         // A block dragged right-to-left has start_col > end_col; order the
         // interval so `[lo, hi]` is never inverted (which would highlight
         // nothing).
-        return Some(rio_grid::RowSelection {
+        return Some(mario_grid::RowSelection {
             lo: sel.start_col.min(sel.end_col).min(cols_max),
             hi: sel.start_col.max(sel.end_col).min(cols_max),
         });
@@ -100,7 +100,7 @@ fn row_selection_from(
     } else {
         cols_max
     };
-    Some(rio_grid::RowSelection {
+    Some(mario_grid::RowSelection {
         lo: lo.min(cols_max),
         hi: hi.min(cols_max),
     })
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn sl_new(
         };
         Box::into_raw(Box::new(Sl {
             inner: sugarloaf,
-            rasterizer: rio_grid::GridGlyphRasterizer::new(),
+            rasterizer: mario_grid::GridGlyphRasterizer::new(),
             font_size,
             line_height,
             scale,
@@ -814,12 +814,12 @@ pub unsafe extern "C" fn sl_orthographic_projection(
 
 // MARK: - Terminal surface rendering
 
-/// The `GridPalette` the grid-emit engine (rio-grid) calls into to
-/// resolve cell colors. Starts on Rio's default theme (`Colors::default()`)
+/// The `GridPalette` the grid-emit engine (mario-grid) calls into to
+/// resolve cell colors. Starts on Mario's default theme (`Colors::default()`)
 /// and the derived 256-color `List`; the host overrides it with
 /// `sl_set_theme` (see `apply_theme`) so cell/selection/cursor colors track
 /// the user's configured scheme. The color-resolution bodies are ported
-/// verbatim from rioterm's `Renderer` (`frontends/rioterm/src/renderer/mod.rs`).
+/// verbatim from marioterm's `Renderer` (`frontends/marioterm/src/renderer/mod.rs`).
 struct HostPalette {
     named: Colors,
     list: List,
@@ -940,7 +940,7 @@ impl HostPalette {
     /// Replace the base theme with the host's colors, then rederive the
     /// 256-color `List` (dim/bright variants, the color cube, the gray ramp)
     /// from it. Only the colors the host actually configures are overridden;
-    /// everything else (search + hint hues, splits) keeps Rio's defaults.
+    /// everything else (search + hint hues, splits) keeps Mario's defaults.
     fn apply_theme(&mut self, theme: &SlTheme) {
         let c = &mut self.named;
         c.black = theme.ansi[0];
@@ -999,7 +999,7 @@ impl HostPalette {
     }
 }
 
-impl rio_grid::GridPalette for HostPalette {
+impl mario_grid::GridPalette for HostPalette {
     fn named_colors(&self) -> &Colors {
         &self.named
     }
@@ -1038,7 +1038,7 @@ impl rio_grid::GridPalette for HostPalette {
 /// A host color theme. Each color is RGBA in 0..1 (matching NSColor
 /// components). `ansi` is the 16 terminal colors: 0..7 normal, 8..15 bright.
 /// The colors not carried here (search + hint hues, splits, and the dim /
-/// bright / 256-cube derivations) fall back to Rio's defaults, rederived
+/// bright / 256-cube derivations) fall back to Mario's defaults, rederived
 /// from these base colors. A `#[repr(C)]` POD passed by pointer.
 #[repr(C)]
 pub struct SlTheme {
@@ -1095,19 +1095,19 @@ pub struct SlSurfaceInputs {
 }
 
 /// Render one terminal surface into `grid` and present it. `render_state`
-/// is an opaque `librio::RenderState*` (the same object the host drives
-/// via `rio_render_state_*`); the caller MUST have already refreshed it
-/// with `rio_render_state_update` this frame — this does NOT re-snapshot.
+/// is an opaque `libmario::RenderState*` (the same object the host drives
+/// via `mario_render_state_*`); the caller MUST have already refreshed it
+/// with `mario_render_state_update` this frame — this does NOT re-snapshot.
 ///
-/// Replicates rioterm's per-frame grid loop: for each dirty row (or every
+/// Replicates marioterm's per-frame grid loop: for each dirty row (or every
 /// row when the grid needs a full rebuild) it emits `CellBg`/`CellText`
-/// via rio-grid's `build_row_bg`/`build_row_fg`, writes the row, builds
+/// via mario-grid's `build_row_bg`/`build_row_fg`, writes the row, builds
 /// the cursor sprite + bg-tint uniforms, then composites with
 /// `render_with_grids`. `cursor_r/g/b` is the cursor color; `focused`
 /// gates the active (block/bar) vs. inactive (hollow) cursor style.
 ///
 /// Resolves cell/selection/cursor colors against the theme set by
-/// `sl_set_theme` (Rio's default until the host pushes one). `inputs` carries
+/// `sl_set_theme` (Mario's default until the host pushes one). `inputs` carries
 /// the cursor color, focus, blink phase, search-match spans, and IME preedit.
 #[no_mangle]
 pub unsafe extern "C" fn sl_render_surface(
@@ -1124,7 +1124,7 @@ pub unsafe extern "C" fn sl_render_surface(
     if render_state.is_null() {
         return;
     }
-    let rs = &mut *(render_state as *mut librio::RenderState);
+    let rs = &mut *(render_state as *mut libmario::RenderState);
 
     let cursor_r = inputs.cursor_r;
     let cursor_g = inputs.cursor_g;
@@ -1152,7 +1152,7 @@ pub unsafe extern "C" fn sl_render_surface(
         let font_size = sl.font_size;
         let line_height = sl.line_height;
         let scale = sl.scale;
-        // Shaping size in physical pixels (matches rioterm's `font_px`).
+        // Shaping size in physical pixels (matches marioterm's `font_px`).
         let size_px = font_size * scale;
         let (_dims, metrics) = sl.compute_cell_metrics(font_size, line_height, scale);
         let cell_w = metrics.cell_width as f32;
@@ -1193,7 +1193,7 @@ pub unsafe extern "C" fn sl_render_surface(
         let cols_max = cols.saturating_sub(1) as u16;
         let mut bg_scratch: Vec<CellBg> = Vec::with_capacity(cols);
         let mut fg_scratch: Vec<CellText> = Vec::with_capacity(cols);
-        let mut hint_scratch: Vec<rio_grid::RowHint> = Vec::new();
+        let mut hint_scratch: Vec<mario_grid::RowHint> = Vec::new();
 
         {
             let rasterizer = &mut sl.rasterizer;
@@ -1212,19 +1212,19 @@ pub unsafe extern "C" fn sl_render_surface(
                         let lo = s.lo.min(cols_max);
                         let hi = s.hi.min(cols_max);
                         if lo <= hi {
-                            hint_scratch.push(rio_grid::RowHint {
+                            hint_scratch.push(mario_grid::RowHint {
                                 lo,
                                 hi,
                                 tag: if s.focused != 0 {
-                                    rio_grid::HintTag::Focused
+                                    mario_grid::HintTag::Focused
                                 } else {
-                                    rio_grid::HintTag::Match
+                                    mario_grid::HintTag::Match
                                 },
                             });
                         }
                     }
                 }
-                rio_grid::build_row_bg(
+                mario_grid::build_row_bg(
                     row,
                     cols,
                     rs.row_styles(y),
@@ -1242,13 +1242,13 @@ pub unsafe extern "C" fn sl_render_surface(
                 // the user is typing.
                 let cursor_col_for_row = if cursor_visible
                     && y == cursor_line
-                    && cursor_shape != librio::CursorShape::Hidden
+                    && cursor_shape != libmario::CursorShape::Hidden
                 {
                     Some(cursor_col as u16)
                 } else {
                     None
                 };
-                rio_grid::build_row_fg(
+                mario_grid::build_row_fg(
                     row,
                     cols,
                     y as u16,
@@ -1277,7 +1277,7 @@ pub unsafe extern "C" fn sl_render_surface(
         // or tail slot, and (for the block style only) set the bg-tint
         // uniforms so the bg shader paints the cell and the text shader
         // inverts the glyph on top.
-        let render_style = rio_grid::cursor_render_style(rio_grid::CursorRenderInputs {
+        let render_style = mario_grid::cursor_render_style(mario_grid::CursorRenderInputs {
             visible: cursor_visible,
             focused,
             blink_visible: cursor_blink_visible,
@@ -1291,7 +1291,7 @@ pub unsafe extern "C" fn sl_render_surface(
             let cw = cell_w.round().clamp(1.0, u32::MAX as f32) as u32;
             let ch = cell_h.round().clamp(1.0, u32::MAX as f32) as u32;
             let color = [cursor_r, cursor_g, cursor_b, 255];
-            if let Some((is_block, cell)) = rio_grid::cursor_sprite_cell(
+            if let Some((is_block, cell)) = mario_grid::cursor_sprite_cell(
                 grid,
                 style,
                 cursor_col as u16,
@@ -1318,7 +1318,7 @@ pub unsafe extern "C" fn sl_render_surface(
             1.0,
         ];
         let (cursor_pos, cursor_col_u, cursor_bg_u) =
-            if matches!(render_style, Some(rio_grid::CursorRenderStyle::Block)) {
+            if matches!(render_style, Some(mario_grid::CursorRenderStyle::Block)) {
                 (
                     [cursor_col as u32, cursor_line as u32],
                     [bg_col[0], bg_col[1], bg_col[2], bg_col[3]],

@@ -17,7 +17,7 @@
 //!
 //! This module is scaffolding. Both backends allocate empty buffers,
 //! accept writes, and expose a `render` no-op. Shaders land in Phase 1,
-//! call sites in `rioterm::renderer` land in Phase 2.
+//! call sites in `marioterm::renderer` land in Phase 2.
 
 pub mod atlas;
 pub mod cell;

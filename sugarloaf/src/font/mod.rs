@@ -1,10 +1,10 @@
 pub mod constants;
 pub mod fonts;
-// The glyph-protocol decoder + registry moved to the `rio-graphics` leaf
+// The glyph-protocol decoder + registry moved to the `mario-graphics` leaf
 // crate so the terminal core can use them without depending on sugarloaf.
 // Re-exported here so `sugarloaf::font::glyf_decode` /
 // `sugarloaf::font::glyph_registry` keep resolving.
-pub use rio_graphics::glyph::{glyf_decode, glyph_registry};
+pub use mario_graphics::glyph::{glyf_decode, glyph_registry};
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "android")))]
 pub mod linux;
 #[cfg(not(target_arch = "wasm32"))]
@@ -12,9 +12,9 @@ pub mod loader;
 #[cfg(target_os = "macos")]
 pub mod macos;
 pub mod metrics;
-// Lives in rio-fonts so librio's CPU renderers share the same table;
+// Lives in mario-fonts so libmario's CPU renderers share the same table;
 // re-exported here to keep the sugarloaf-internal path stable.
-pub use rio_fonts::nerd_font as nerd_font_attributes;
+pub use mario_fonts::nerd_font as nerd_font_attributes;
 pub mod text_run_cache;
 #[cfg(target_os = "windows")]
 pub mod windows;
@@ -260,13 +260,13 @@ impl FontLibrary {
             .and_then(|f| f.handle().cloned())
     }
 
-    /// Resolve a PostScript name back to Rio's `font_id`. Returns
+    /// Resolve a PostScript name back to Mario's `font_id`. Returns
     /// `None` when the library doesn't hold a font with that name.
     pub fn font_id_for_postscript_name(&self, name: &str) -> Option<usize> {
         self.inner.read().font_id_for_postscript_name(name)
     }
 
-    /// Resolve `ch` to a Rio `(font_id, is_emoji)`, walking the
+    /// Resolve `ch` to a Mario `(font_id, is_emoji)`, walking the
     /// registered fonts first and falling back to CoreText's cascade
     /// via `CTFontCreateForString` when no registered font carries
     /// the glyph. Discovered fonts are registered in-place so
@@ -447,7 +447,7 @@ impl FontLibrary {
     ///
     /// Intended for the command-palette "List Fonts" browser, so users
     /// can see what's installed without leaving the terminal. Does NOT
-    /// currently include fonts registered through rio's
+    /// currently include fonts registered through mario's
     /// `fonts.additional_dirs` config — those aren't retained on the
     /// `FontLibrary` past load, and walking the dirs again would
     /// duplicate I/O. A follow-up can widen this once `FontLibrary`
@@ -582,7 +582,7 @@ pub struct FontLibraryData {
     primary_metrics_cache: FxHashMap<u32, Metrics>,
     /// PostScript-name → `font_id` lookup, populated on `insert`. Used
     /// by the cascade resolver on every platform: macOS maps CoreText's
-    /// per-CTRun font back to a Rio `font_id` when the cascade-list
+    /// per-CTRun font back to a Mario `font_id` when the cascade-list
     /// substitution kicks in; Linux and Windows use it to dedupe a
     /// fontconfig-/font-kit-discovered fallback against fonts already
     /// in the registry.
@@ -735,7 +735,7 @@ impl FontLibraryData {
         let id = self.inner.len();
         // Index by PS name so the cascade resolver (CoreText on macOS,
         // fontconfig on Linux, font-kit walk on Windows) can map a
-        // discovered font back to a Rio `font_id`. Only paid at load
+        // discovered font back to a Mario `font_id`. Only paid at load
         // time. Duplicate names (same face loaded twice) resolve to
         // the first-inserted id, which is the entry the rest of the
         // library already points at — good enough for cascade mapping.
@@ -769,7 +769,7 @@ impl FontLibraryData {
         }
     }
 
-    /// Rio `font_id` registered for the given PostScript name, or
+    /// Mario `font_id` registered for the given PostScript name, or
     /// `None` when no loaded font reports that name. Used by the
     /// cascade resolver to dedupe a discovered font against ones
     /// already in the registry.
@@ -988,7 +988,7 @@ impl FontLibraryData {
         // users get the same coverage as any other macOS app.
         //
         // Critically, each cascade entry is constructed via `from_path_macos`
-        // — CoreText opens the file on demand, Rio never reads the bytes.
+        // — CoreText opens the file on demand, Mario never reads the bytes.
         // This keeps us from pulling the 200 MB Apple Color Emoji file into
         // `FONT_DATA_CACHE`.
         #[cfg(target_os = "macos")]
@@ -1197,7 +1197,7 @@ pub struct FontData {
     /// `font_id_for_postscript_name` lookup can avoid reparsing the
     /// font file. Used by both the macOS CoreText cascade resolver and
     /// the Linux/Windows fontconfig/font-kit cascade resolver to map
-    /// a discovered font back to a Rio `font_id`. `None` only for
+    /// a discovered font back to a Mario `font_id`. `None` only for
     /// fonts where the PS name couldn't be parsed (rare — corrupt
     /// font, or zero-name TTF).
     postscript_name: Option<String>,
@@ -1244,7 +1244,7 @@ impl FontData {
 
     /// PostScript name extracted at load time (`name` table ID 6).
     /// `None` only for fonts whose name table couldn't be parsed.
-    /// Used to map a discovered font path back to a Rio `font_id` in
+    /// Used to map a discovered font path back to a Mario `font_id` in
     /// the cross-platform cascade resolver.
     pub fn postscript_name(&self) -> Option<&str> {
         self.postscript_name.as_deref()
@@ -1420,7 +1420,7 @@ impl FontData {
     /// macOS-only: construct a `FontData` straight from a file path, with
     /// attributes read through CoreText. Never loads the font bytes.
     ///
-    /// CoreText reads the file itself, so Rio's `FONT_DATA_CACHE` never
+    /// CoreText reads the file itself, so Mario's `FONT_DATA_CACHE` never
     /// ends up holding hundreds of MB of Apple Color Emoji / CJK font
     /// bytes.
     /// macOS-only: wrap a CTFont discovered at runtime (e.g. via
@@ -1700,7 +1700,7 @@ impl FontData {
 
 /// Extract the PostScript name (`name` table ID 6) from font bytes.
 /// Used to populate `FontData.postscript_name` so the cross-platform
-/// resolver can map a discovered font path back to a Rio `font_id`
+/// resolver can map a discovered font path back to a Mario `font_id`
 /// without re-parsing. Falls back to the family name (ID 1) if the
 /// PS name is missing — a font without a usable name can't participate
 /// in the cascade-mapping anyway, so `None` is fine.
@@ -1740,7 +1740,7 @@ enum FindResult {
     NotFound(SugarloafFont),
 }
 
-/// Select a color bitmap that Swash can safely render for Rio's premultiplied
+/// Select a color bitmap that Swash can safely render for Mario's premultiplied
 /// RGBA atlas. Raw premultiplied strikes cannot pass through Swash's resampler.
 /// Only the non-macOS rasterizers call this, but it is compiled everywhere so
 /// its tests run on every platform.
@@ -2340,7 +2340,7 @@ mod alias_tests {
         collection.resize(20, 0);
         for (index, bytes) in [
             &include_bytes!(
-                "../../../rio-fonts/resources/SymbolsNerdFontMono/SymbolsNerdFontMono-Regular.ttf"
+                "../../../mario-fonts/resources/SymbolsNerdFontMono/SymbolsNerdFontMono-Regular.ttf"
             )[..],
             constants::FONT_CASCADIA_CODE_NF,
         ]

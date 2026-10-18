@@ -7,7 +7,7 @@
 **See also:**
 - Blog post introducing the protocol and its rationale:
   <https://rapha.land/introducing-glyph-protocol-for-terminals/>
-- Reference implementation: [Rio terminal](https://raphamorim.io/rio)
+- Reference implementation: [Mario terminal](https://raphamorim.io/mario)
 - Example apps (ratatui, bubbletea v2, ink) registering real Nerd Font
   outlines and colrv1/colrv0 emojis at empty PUA-B slots:
   [glyph-protocol-examples](https://github.com/raphamorim/glyph-protocol-examples)
@@ -746,7 +746,7 @@ A client (application) is Glyph Protocol v1 conformant if it:
 
 ## 12. Reference implementation
 
-The reference implementation ships in Rio terminal. A companion
+The reference implementation ships in Mario terminal. A companion
 helper, `svg2glyf`, ships alongside to convert existing SVG assets
 to the accepted `glyf` subset at build time.
 
@@ -857,4 +857,4 @@ rather than serving a stale bitmap.
 | 2026-05-03 | v1.8    | Replaced the `s` reply's `u8` bitfield with a comma-separated list of format names (e.g. `fmt=glyf,colrv0,colrv1`). Names extend without bit-collision worries and stay readable in transcripts; an empty `fmt=` means the terminal advertises no payload formats. Unknown names MUST be ignored by clients, so future formats are forward-compatible. |
 | 2026-05-03 | v1.9    | Replaced the `q` reply's `u8` two-bit `status` field with a comma-separated list of coverage names: `status=system`, `status=glossary`, `status=system,glossary`, or empty for "free". Same motivation as v1.8 for the `s` reply. The `r` and `c` replies still use `status=<u8>` for success/failure since that's a closed boolean, not an extensible set. |
 | 2026-08-17 | v1.10   | Added a decoded-size budget to §8.2: 64 KiB of decoded outline data (12 bytes per point, i.e. 5,461 points), enforced per outline and per registration before point storage is allocated; violations reject with the new `reason=outline_too_large`. Closes a decode-amplification hole: repeat-compressed flags and omitted deltas let a 64 KiB wire payload expand to ~768 KiB per monochrome slot (~768 MiB per session at 1024 slots), and a colour container amplifies further via its up-to-1024 carried outlines. Requested by Mitchell Hashimoto, who hit the expansion while implementing the protocol in Ghostty; the budget follows his survey of Apple Symbols, Noto, and Nerd Fonts, where the largest real glyph decodes to ~40 KiB. |
-| 2026-08-17 | v1.11   | Redefined `width` as a render-level span, matching the reference implementation (rio#1649, rio#1650): the codepoint's logical cell width always stays its system `wcwidth`, because interactive applications (shells, line editors, multiplexers) compute column counts independently and a terminal-only width override desyncs the cursor between terminal and application. A `width=2` glyph overflows into the following cell in pixels, and the client MUST leave that cell blank. v1.7's "authoritative for all layout decisions" wording is withdrawn. |
+| 2026-08-17 | v1.11   | Redefined `width` as a render-level span, matching the reference implementation (mario#1649, mario#1650): the codepoint's logical cell width always stays its system `wcwidth`, because interactive applications (shells, line editors, multiplexers) compute column counts independently and a terminal-only width override desyncs the cursor between terminal and application. A `width=2` glyph overflows into the following cell in pixels, and the client MUST leave that cell blank. v1.7's "authoritative for all layout decisions" wording is withdrawn. |

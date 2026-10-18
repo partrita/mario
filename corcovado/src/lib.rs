@@ -1,4 +1,4 @@
-//! A low-level readiness-based IO library focused on what Rio needs from its
+//! A low-level readiness-based IO library focused on what Mario needs from its
 //! PTY event loop: event notification backed by epoll, kqueue, and IOCP, plus
 //! a pollable cross-thread channel and user-space readiness (`Registration` /
 //! `SetReadiness`).

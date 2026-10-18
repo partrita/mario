@@ -4,22 +4,22 @@
 SCDOC = scdoc
 MANDIR = /usr/local/share/man
 
-all: rio.1 rio.5 rio-bindings.5
+all: mario.1 mario.5 mario-bindings.5
 
-rio.1: rio.1.scd
+mario.1: mario.1.scd
 	$(SCDOC) < $< > $@
 
-rio.5: rio.5.scd
+mario.5: mario.5.scd
 	$(SCDOC) < $< > $@
 
-rio-bindings.5: rio-bindings.5.scd
+mario-bindings.5: mario-bindings.5.scd
 	$(SCDOC) < $< > $@
 
 install: all
 	mkdir -p $(DESTDIR)$(MANDIR)/man1 $(DESTDIR)$(MANDIR)/man5
-	install -m644 rio.1 $(DESTDIR)$(MANDIR)/man1/rio.1
-	install -m644 rio.5 $(DESTDIR)$(MANDIR)/man5/rio.5
-	install -m644 rio-bindings.5 $(DESTDIR)$(MANDIR)/man5/rio-bindings.5
+	install -m644 mario.1 $(DESTDIR)$(MANDIR)/man1/mario.1
+	install -m644 mario.5 $(DESTDIR)$(MANDIR)/man5/mario.5
+	install -m644 mario-bindings.5 $(DESTDIR)$(MANDIR)/man5/mario-bindings.5
 
 clean:
-	rm -f rio.1 rio.5 rio-bindings.5
+	rm -f mario.1 mario.5 mario-bindings.5

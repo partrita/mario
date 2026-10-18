@@ -16,7 +16,7 @@ fn cvt(i: libc::c_int) -> io::Result<libc::c_int> {
 
 // Writers must get EPIPE back instead of SIGPIPE: these sockets are
 // written from signal handlers (teletypewriter's signal self-pipe),
-// and non-Rust hosts embedding librio do not ignore SIGPIPE, so the
+// and non-Rust hosts embedding libmario do not ignore SIGPIPE, so the
 // default disposition would kill their process during fd teardown.
 #[cfg(any(target_os = "macos", target_os = "ios", target_os = "freebsd"))]
 unsafe fn set_nosigpipe(fd: c_int) -> io::Result<()> {

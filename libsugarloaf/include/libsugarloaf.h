@@ -1,7 +1,7 @@
 #ifndef LIBSUGARLOAF_H
 #define LIBSUGARLOAF_H
 
-/* libsugarloaf: a C ABI over Rio's sugarloaf GPU renderer.
+/* libsugarloaf: a C ABI over Mario's sugarloaf GPU renderer.
  *
  * The host provides an NSView; sugarloaf attaches a CAMetalLayer to it and
  * owns the glyph atlas + GPU present. sugarloaf does NOT shape or rasterize:
@@ -96,7 +96,7 @@ typedef struct {
 
 /* A host color theme. Each color is RGBA in 0..1. `ansi` is the 16 terminal
  * colors: 0..7 normal, 8..15 bright. Colors not carried here (search + hint
- * hues, splits, and the dim/bright/256-cube derivations) fall back to Rio's
+ * hues, splits, and the dim/bright/256-cube derivations) fall back to Mario's
  * defaults, rederived from these base colors. Mirrors capi::SlTheme. */
 typedef struct {
   float ansi[16][4];
@@ -254,11 +254,11 @@ typedef struct {
   const char *preedit;       /* IME preedit at cursor (UTF-8), or NULL */
 } sl_surface_inputs_t;
 
-/* Render a librio terminal surface into `grid` and present it in one call:
- * emits CellBg/CellText from the RenderState snapshot (via rio-grid), writes
+/* Render a libmario terminal surface into `grid` and present it in one call:
+ * emits CellBg/CellText from the RenderState snapshot (via mario-grid), writes
  * the dirty rows, builds the cursor, applies search highlights, and
- * composites. `render_state` is an opaque librio RenderState* (the pointer the
- * host already holds); it must be refreshed with rio_render_state_update
+ * composites. `render_state` is an opaque libmario RenderState* (the pointer the
+ * host already holds); it must be refreshed with mario_render_state_update
  * BEFORE this call — this does not re-snapshot. `inputs` carries the cursor
  * color/focus, blink phase, search spans, and IME preedit. */
 void sl_render_surface(sl_sugarloaf_t *sl, sl_grid_t *grid, void *render_state,

@@ -32,7 +32,7 @@ pub struct Sprite {
     pub bytes: Vec<u8>,
 }
 
-/// Cheap codepoint membership test: is `cp` a sprite Rio draws itself?
+/// Cheap codepoint membership test: is `cp` a sprite Mario draws itself?
 /// Used to short-circuit the per-cell hot loop before touching the atlas.
 /// Keep in sync with the families handled by [`rasterize`].
 #[inline]
@@ -207,8 +207,8 @@ mod tests {
     #[ignore = "visual dump; run: cargo test -p sugarloaf --lib sprite::tests::dump -- --ignored --nocapture"]
     fn dump_box_drawing_png() {
         // Even and odd cell sizes — odd sizes stress line centering.
-        dump_range_png("rio_sprite_box_20x40.png", 0x2500..=0x257F, 20, 40);
-        dump_range_png("rio_sprite_box_9x19.png", 0x2500..=0x257F, 9, 19);
+        dump_range_png("mario_sprite_box_20x40.png", 0x2500..=0x257F, 20, 40);
+        dump_range_png("mario_sprite_box_9x19.png", 0x2500..=0x257F, 9, 19);
     }
 
     #[test]
@@ -238,7 +238,7 @@ mod tests {
     #[test]
     #[ignore = "visual dump; see dump_box_drawing_png"]
     fn dump_block_png() {
-        dump_range_png("rio_sprite_block_20x40.png", 0x2580..=0x259F, 20, 40);
+        dump_range_png("mario_sprite_block_20x40.png", 0x2580..=0x259F, 20, 40);
     }
 
     #[test]
@@ -258,7 +258,7 @@ mod tests {
     #[test]
     #[ignore = "visual dump; see dump_box_drawing_png"]
     fn dump_braille_png() {
-        dump_range_png("rio_sprite_braille_20x40.png", 0x2800..=0x28FF, 20, 40);
+        dump_range_png("mario_sprite_braille_20x40.png", 0x2800..=0x28FF, 20, 40);
     }
 
     #[test]
@@ -282,8 +282,8 @@ mod tests {
     #[test]
     #[ignore = "visual dump; see dump_box_drawing_png"]
     fn dump_legacy_png() {
-        dump_range_png("rio_sprite_sextant_20x40.png", 0x1FB00..=0x1FB3B, 20, 40);
-        dump_range_png("rio_sprite_octant_20x40.png", 0x1CD00..=0x1CDE5, 20, 40);
+        dump_range_png("mario_sprite_sextant_20x40.png", 0x1FB00..=0x1FB3B, 20, 40);
+        dump_range_png("mario_sprite_octant_20x40.png", 0x1CD00..=0x1CDE5, 20, 40);
     }
 
     #[test]
@@ -298,7 +298,7 @@ mod tests {
     #[test]
     #[ignore = "visual dump; see dump_box_drawing_png"]
     fn dump_powerline_png() {
-        dump_range_png("rio_sprite_powerline_24x48.png", 0xE0B0..=0xE0D4, 24, 48);
+        dump_range_png("mario_sprite_powerline_24x48.png", 0xE0B0..=0xE0D4, 24, 48);
     }
 
     #[test]
@@ -313,7 +313,7 @@ mod tests {
     #[test]
     #[ignore = "visual dump; see dump_box_drawing_png"]
     fn dump_geometric_png() {
-        dump_range_png("rio_sprite_geometric_24x48.png", 0x25E0..=0x25FF, 24, 48);
+        dump_range_png("mario_sprite_geometric_24x48.png", 0x25E0..=0x25FF, 24, 48);
     }
 
     #[test]
@@ -328,6 +328,6 @@ mod tests {
     #[test]
     #[ignore = "visual dump; see dump_box_drawing_png"]
     fn dump_branch_png() {
-        dump_range_png("rio_sprite_branch_24x48.png", 0xF5D0..=0xF60D, 24, 48);
+        dump_range_png("mario_sprite_branch_24x48.png", 0xF5D0..=0xF60D, 24, 48);
     }
 }

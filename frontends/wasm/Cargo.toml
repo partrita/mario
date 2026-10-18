@@ -1,5 +1,5 @@
 [package]
-name = "rioterm-wasm"
+name = "marioterm-wasm"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

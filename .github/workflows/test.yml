@@ -112,4 +112,4 @@ jobs:
         CARGO_PROFILE_RELEASE_LTO: thin
         CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 8
         CARGO_PROFILE_RELEASE_DEBUG: "0"
-      run: cargo build -p rioterm --release --features wgpu
+      run: cargo build -p marioterm --release --features wgpu

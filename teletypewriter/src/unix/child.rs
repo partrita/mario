@@ -490,7 +490,7 @@ mod tests {
         }
         let failed_spawn = || {
             create_pty_with_spawn(
-                Some("/definitely-missing-rio-test-shell"),
+                Some("/definitely-missing-mario-test-shell"),
                 vec![],
                 &None,
                 None,

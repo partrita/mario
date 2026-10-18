@@ -5,8 +5,8 @@ authors.workspace = true
 edition.workspace = true
 license.workspace = true
 keywords.workspace = true
-repository = "https://github.com/raphamorim/rio"
-description = "Embeddable GPU renderer extracted from Rio's sugarloaf: a glyph atlas + cell-grid compositor over a host window, exposed as a C ABI"
+repository = "https://github.com/raphamorim/mario"
+description = "Embeddable GPU renderer extracted from Mario's sugarloaf: a glyph atlas + cell-grid compositor over a host window, exposed as a C ABI"
 readme = "README.md"
 publish = false
 
@@ -21,9 +21,9 @@ crate-type = ["rlib", "staticlib"]
 sugarloaf = { workspace = true }
 raw-window-handle = { workspace = true }
 # The grid-emit engine (Square cells → CellBg/CellText) and the terminal
-# core whose RenderState snapshot it consumes. rio-grid pulls rio-backend,
+# core whose RenderState snapshot it consumes. mario-grid pulls mario-backend,
 # whose `crosswords` / `config::colors` / `sugarloaf` modules re-export the
-# same crates librio uses, so the snapshot types unify across the ABI.
-rio-grid = { workspace = true }
-rio-vt = { workspace = true }
-librio = { path = "../librio" }
+# same crates libmario uses, so the snapshot types unify across the ABI.
+mario-grid = { workspace = true }
+mario-vt = { workspace = true }
+libmario = { path = "../libmario" }

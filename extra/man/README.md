@@ -1,12 +1,12 @@
-# Rio Terminal Man Pages
+# Mario Terminal Man Pages
 
-This directory contains manual pages for Rio terminal emulator in scdoc format.
+This directory contains manual pages for Mario terminal emulator in scdoc format.
 
 ## Files
 
-- `rio.1.scd` - Main Rio terminal manual page (section 1)
-- `rio.5.scd` - Rio configuration file format manual page (section 5)  
-- `rio-bindings.5.scd` - Rio key bindings manual page (section 5)
+- `mario.1.scd` - Main Mario terminal manual page (section 1)
+- `mario.5.scd` - Mario configuration file format manual page (section 5)  
+- `mario-bindings.5.scd` - Mario key bindings manual page (section 5)
 
 ## Building
 
@@ -44,18 +44,18 @@ sudo make install
 make -C extra/man
 
 # Or build individually
-scdoc < extra/man/rio.1.scd > rio.1
-scdoc < extra/man/rio.5.scd > rio.5
-scdoc < extra/man/rio-bindings.5.scd > rio-bindings.5
+scdoc < extra/man/mario.1.scd > mario.1
+scdoc < extra/man/mario.5.scd > mario.5
+scdoc < extra/man/mario-bindings.5.scd > mario-bindings.5
 ```
 
 ### Install man pages
 
 ```bash
 # Install to system man directory (requires sudo)
-sudo cp rio.1 /usr/local/share/man/man1/
-sudo cp rio.5 /usr/local/share/man/man5/
-sudo cp rio-bindings.5 /usr/local/share/man/man5/
+sudo cp mario.1 /usr/local/share/man/man1/
+sudo cp mario.5 /usr/local/share/man/man5/
+sudo cp mario-bindings.5 /usr/local/share/man/man5/
 
 # Update man database
 sudo mandb
@@ -64,9 +64,9 @@ sudo mandb
 ### View man pages
 
 ```bash
-man rio
-man 5 rio
-man 5 rio-bindings
+man mario
+man 5 mario
+man 5 mario-bindings
 ```
 
 ## Format

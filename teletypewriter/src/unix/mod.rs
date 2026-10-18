@@ -617,7 +617,7 @@ pub fn create_pty_with_spawn(
                 "--host".to_string(),
                 "--watch-bus".to_string(),
                 "--env=COLORTERM=truecolor".to_string(),
-                "--env=TERM=rio".to_string(),
+                "--env=TERM=mario".to_string(),
             ];
 
             // Only `--env=` crosses the sandbox boundary: variables set

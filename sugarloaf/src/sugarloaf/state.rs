@@ -6,7 +6,7 @@
 //! Sugarloaf-side global state — font handle, root style, and a
 //! single visual-bell overlay slot. The previous version owned the
 //! `Content` registry that tracked per-panel layout; that bookkeeping
-//! moved to rio's `ContextDimension` (see
+//! moved to mario's `ContextDimension` (see
 //! `memory/project_sugarloaf_content_drop.md`). This module is now
 //! mostly a thin holder.
 
@@ -72,7 +72,7 @@ impl SugarState {
 
     /// `compute_dimensions` used to walk per-id Content states and
     /// recompute cell metrics on the `needs_repaint` flag. Per-panel
-    /// dimensions live on rio's `ContextDimension` now and rio drives
+    /// dimensions live on mario's `ContextDimension` now and mario drives
     /// the recompute through `Sugarloaf::compute_cell_metrics`. This
     /// is preserved as a no-op stub so existing render-loop call
     /// sites stay shape-compatible until they're audited.
@@ -94,7 +94,7 @@ impl SugarState {
     pub fn clean_screen(&mut self) {}
 
     /// Refresh `RootStyle.scale_factor`. Per-panel `dimension` /
-    /// `scaled_font_size` updates happen on rio's `ContextDimension`
+    /// `scaled_font_size` updates happen on mario's `ContextDimension`
     /// — this only touches sugarloaf's global default that new panels
     /// inherit from.
     #[inline]

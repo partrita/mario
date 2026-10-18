@@ -12,7 +12,7 @@ use sugarloaf::tools::{create_html_canvas, get_html_canvas};
 use sugarloaf::Sugarloaf;
 use wasm_bindgen_test::*;
 
-use rio_window::{
+use mario_window::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
 };
@@ -20,7 +20,7 @@ use rio_window::{
 wasm_bindgen_test_configure!(run_in_browser);
 
 #[cfg(target_arch = "wasm32")]
-use rio_window::platform::web::WindowBuilderExtWebSys;
+use mario_window::platform::web::WindowBuilderExtWebSys;
 
 fn compute_styles(
     scale_factor: f32,
@@ -43,16 +43,16 @@ async fn run() {
     let canvas_element = get_html_canvas();
 
     #[cfg(target_arch = "wasm32")]
-    let window = rio_window::window::WindowBuilder::new()
+    let window = mario_window::window::WindowBuilder::new()
         .with_title("sugarloaf-wasm")
-        .with_inner_size(rio_window::dpi::LogicalSize::new(width, height))
+        .with_inner_size(mario_window::dpi::LogicalSize::new(width, height))
         .with_resizable(false)
         .with_canvas(Some(canvas_element))
         .build(&event_loop)
         .unwrap();
 
     #[cfg(not(target_arch = "wasm32"))]
-    let window = rio_window::window::Window::new(&event_loop).unwrap();
+    let window = mario_window::window::Window::new(&event_loop).unwrap();
 
     let mut sugarloaf = Sugarloaf::new(
         &window,
@@ -166,7 +166,7 @@ async fn run() {
             },
         ];
 
-        let rio = vec![
+        let mario = vec![
             Sugar {
                 content: ' ',
                 foreground_color: [1.0, 1.0, 1.0, 1.0],
@@ -300,7 +300,7 @@ async fn run() {
             Event::RedrawRequested { .. } => {
                 sugarloaf.stack(sugar, styles);
                 sugarloaf.stack(loaf, styles);
-                sugarloaf.stack(rio, styles);
+                sugarloaf.stack(mario, styles);
                 sugarloaf.stack(special, styles);
                 sugarloaf.render();
             }

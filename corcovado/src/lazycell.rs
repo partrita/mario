@@ -1,6 +1,6 @@
 // Original work Copyright (c) 2014 The Rust Project Developers
 // Modified work Copyright (c) 2016-2018 Nikita Pekin and the lazycell contributors
-// Modified work Copyright (c) 2022 Raphael Amorim and the rio contributors
+// Modified work Copyright (c) 2022 Raphael Amorim and the mario contributors
 // See the README.md file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or

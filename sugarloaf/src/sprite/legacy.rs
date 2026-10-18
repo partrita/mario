@@ -10,7 +10,7 @@
 //! Sextants are generated directly: the `idx + idx/0x14 + 1` mapping
 //! skips the four patterns that already exist as block elements (empty,
 //! full, left-half, right-half). Octant
-//! patterns reuse Rio's validated `OCTANT_PATTERNS` table — the codepoint
+//! patterns reuse Mario's validated `OCTANT_PATTERNS` table — the codepoint
 //! → pattern mapping is irregular (it skips the 26 patterns representable
 //! by other characters), so a table is required.
 

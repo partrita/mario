@@ -34,7 +34,7 @@ use crate::windows::{cmdline, win32_string, Pty};
 /// bugfixes compared to the standard conpty that ships with Windows.
 ///
 /// The conpty.dll and OpenConsole.exe files will be searched in PATH and in
-/// the directory where Rio's executable is located.
+/// the directory where Mario's executable is located.
 type CreatePseudoConsoleFn =
     unsafe extern "system" fn(COORD, HANDLE, HANDLE, u32, *mut HPCON) -> HRESULT;
 type ResizePseudoConsoleFn = unsafe extern "system" fn(HPCON, COORD) -> HRESULT;
@@ -185,7 +185,7 @@ pub fn new(
     startup_info_ex.StartupInfo.cb = mem::size_of::<STARTUPINFOEXW>() as u32;
 
     // Setting this flag but leaving all the handles as default (null) ensures the
-    // PTY process does not inherit any handles from this Rio process.
+    // PTY process does not inherit any handles from this Mario process.
     startup_info_ex.StartupInfo.dwFlags |= STARTF_USESTDHANDLES;
 
     // Create the appropriately sized thread attribute list.

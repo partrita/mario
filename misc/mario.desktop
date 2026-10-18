@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+TryExec=mario
+Exec=mario
+Icon=mario
+Terminal=false
+Categories=System;TerminalEmulator;
+
+Name=Mario
+GenericName=Terminal
+Comment=A hardware-accelerated GPU terminal emulator powered by WebGPU
+StartupWMClass=Mario
+Actions=New;
+
+[Desktop Action New]
+Name=New Terminal
+Exec=mario

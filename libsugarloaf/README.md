@@ -1,9 +1,9 @@
 # libsugarloaf
 
-A C ABI over Rio's [`sugarloaf`](../sugarloaf) GPU renderer, the rendering
-counterpart to [`librio`](../librio) (which wraps the terminal core).
+A C ABI over Mario's [`sugarloaf`](../sugarloaf) GPU renderer, the rendering
+counterpart to [`libmario`](../libmario) (which wraps the terminal core).
 
-Where `librio` gives a host the terminal *state* (parse + VT + a pull API for
+Where `libmario` gives a host the terminal *state* (parse + VT + a pull API for
 cells), `libsugarloaf` gives it the *renderer*: hand it an `NSView`, and
 sugarloaf attaches a `CAMetalLayer`, owns the glyph atlas texture, and does
 the GPU compositing + present. On macOS this is native Metal (sugarloaf's
@@ -33,5 +33,5 @@ on macOS): `Sugarloaf` and the grids hold GPU handles and are not `Send`.
 ## Build
 
 `crate-type = ["rlib", "staticlib"]` — links as a static library. The header
-and a `SugarloafKit` modulemap live in `include/`. Build against a local Rio
-checkout the same way as `librio`.
+and a `SugarloafKit` modulemap live in `include/`. Build against a local Mario
+checkout the same way as `libmario`.

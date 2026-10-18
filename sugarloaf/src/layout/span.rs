@@ -6,7 +6,7 @@
 //! Span-level styling: the type set that survived the rich-text
 //! emission deletion. `SpanStyle` is shared across grid emit (via
 //! `font_cache::FontCache::find_best_font_match`), UI text shaping
-//! (`crate::text`), and rio's frontend (font_cache + grid_emit). The
+//! (`crate::text`), and mario's frontend (font_cache + grid_emit). The
 //! decoration enums are read by the underline / strikethrough quad
 //! batches in the renderer.
 

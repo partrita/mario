@@ -38,7 +38,7 @@ use std::sync::Arc;
 /// for `VulkanRenderer`-inside-`Sugarloaf` (single parent) cannot
 /// extend to `VulkanGridRenderer`-inside-`Screen.grids` (a sibling
 /// of the parent that owns the device), which is the bug behind
-/// raphamorim/rio#1568.
+/// raphamorim/mario#1568.
 ///
 /// Mirrors `wgpu_hal::vulkan::DeviceShared`. `raw` is named for the
 /// underlying `ash::Device` to match wgpu-hal's convention; `Deref`
@@ -149,12 +149,12 @@ pub struct VulkanContext {
     /// Vulkan state) so `vkDestroyDevice` runs only after the last
     /// dependent resource is dropped. Replaces the previous bare
     /// `device.clone()` cloning, which was unsafe across struct
-    /// boundaries (raphamorim/rio#1568). `Deref` to `ash::Device`
+    /// boundaries (raphamorim/mario#1568). `Deref` to `ash::Device`
     /// keeps call sites unchanged: `self.shared.cmd_bind_pipeline(...)`.
     shared: Arc<VkShared>,
 
     /// Pipeline cache shared by every `create_graphics_pipelines`
-    /// call. Loaded from `~/.cache/rio/sugarloaf-vulkan.cache` (best
+    /// call. Loaded from `~/.cache/mario/sugarloaf-vulkan.cache` (best
     /// effort) at startup and serialised back on `Drop`. Saves
     /// ~10–50ms of pipeline build time on subsequent launches.
     pipeline_cache: vk::PipelineCache,
@@ -500,7 +500,7 @@ impl VulkanContext {
     /// `Arc` is dropped. The previous design (each leaf cloning the
     /// raw `ash::Device` dispatch table) crashed when the parent
     /// `VulkanContext` happened to drop first; see
-    /// raphamorim/rio#1568.
+    /// raphamorim/mario#1568.
     #[inline]
     pub fn shared(&self) -> &Arc<VkShared> {
         &self.shared
@@ -1059,7 +1059,7 @@ fn pipeline_cache_path() -> Option<std::path::PathBuf> {
     } else {
         return None;
     };
-    Some(dir.join("rio").join("sugarloaf-vulkan.cache"))
+    Some(dir.join("mario").join("sugarloaf-vulkan.cache"))
 }
 
 fn create_pipeline_cache(device: &Device) -> vk::PipelineCache {

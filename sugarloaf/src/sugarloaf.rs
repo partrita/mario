@@ -119,11 +119,11 @@ pub enum SugarloafBackend {
     Cpu,
 }
 
-// `Color` (the trivial `{r,g,b,a: f64}` POD) now lives in `rio-graphics`
+// `Color` (the trivial `{r,g,b,a: f64}` POD) now lives in `mario-graphics`
 // so config/color code can use it without depending on sugarloaf. The
 // wgpu `From` conversions live alongside it there under the crate's
 // `wgpu` feature (orphan rule: both sides would be foreign here).
-pub use rio_graphics::Color;
+pub use mario_graphics::Color;
 
 pub struct SugarloafRenderer {
     pub backend: SugarloafBackend,
@@ -147,7 +147,7 @@ pub enum Colorspace {
 #[allow(clippy::derivable_impls)]
 impl Default for Colorspace {
     fn default() -> Colorspace {
-        // See `rio-backend::config::window::Colorspace::default` — the
+        // See `mario-backend::config::window::Colorspace::default` — the
         // config field drives how input colors are interpreted, and the
         // shader/surface always target a wide-gamut output. Default sRGB
         // keeps theme bytes visually consistent with the rest of the OS.
@@ -382,7 +382,7 @@ impl Sugarloaf<'_> {
         &self.state.fonts
     }
 
-    /// Stateless cell-metrics computation. Callers (rioterm's
+    /// Stateless cell-metrics computation. Callers (marioterm's
     /// `ContextDimension`) recompute on font / size / scale change
     /// and store the result themselves — sugarloaf no longer keeps
     /// per-panel dimensions. Returns `(TextDimensions, CellMetrics)`
@@ -577,7 +577,7 @@ impl Sugarloaf<'_> {
         let scaled_y = y * self.state.style.scale_factor;
         let scaled_width = width * self.state.style.scale_factor;
         let scaled_height = height * self.state.style.scale_factor;
-        // The `Some(id)` cached arm has no rio caller — every
+        // The `Some(id)` cached arm has no mario caller — every
         // ephemeral rect goes through `Renderer.batches`. Argument
         // kept for API stability with the other primitive helpers.
         self.renderer.rect(
@@ -915,7 +915,7 @@ impl Sugarloaf<'_> {
     /// etc. with a single drawable acquisition + present.
     ///
     /// Pass `&mut []` to skip (equivalent to `render()`). Phase 2 call
-    /// sites in rioterm build the slice with one entry per panel.
+    /// sites in marioterm build the slice with one entry per panel.
     #[inline]
     pub fn render_with_grids(
         &mut self,
@@ -1157,7 +1157,7 @@ impl Sugarloaf<'_> {
         {
             let load = if let Some(background_color) = self.background_color {
                 // The grid bg pass emits `(0,0,0,0)` for default-bg cells (see
-                // `cell_bg` in `frontends/rioterm/src/grid_emit.rs`) and blends
+                // `cell_bg` in `frontends/marioterm/src/grid_emit.rs`) and blends
                 // premultiplied-over the cleared color, so the framebuffer alpha
                 // for any cell that didn't get an explicit bg ends up = the clear
                 // alpha. When the user sets `window.opacity < 1` we want the

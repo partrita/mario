@@ -119,7 +119,7 @@ impl MetalContext {
         }
         // Default to opaque so the macOS compositor can take its
         // fast path on windows without configured transparency. The
-        // host (rio) flips this to `false` via
+        // host (mario) flips this to `false` via
         // `Sugarloaf::set_window_opaque` when `config.window.opacity
         // < 1` or a background blur style is on.
         layer.set_opaque(true);

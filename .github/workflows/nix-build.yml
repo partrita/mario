@@ -10,7 +10,7 @@ on:
     paths:
       - 'flake.nix'
       - 'flake.lock'
-      - 'pkgRio.nix'
+      - 'pkgMario.nix'
       - 'Cargo.lock'
       - '.github/workflows/nix-build.yml'
   push:
@@ -22,7 +22,7 @@ on:
       - '**/Cargo.lock'
       - 'flake.nix'
       - 'flake.lock'
-      - 'pkgRio.nix'
+      - 'pkgMario.nix'
       - '.github/workflows/nix-build.yml'
 
 concurrency:
@@ -45,12 +45,12 @@ jobs:
       - uses: actions/checkout@v6
       - uses: DeterminateSystems/nix-installer-action@main
       # Binary cache, both directions: substitutes previously-built paths
-      # for CI, and flake users get rioterm.cachix.org as a substituter
+      # for CI, and flake users get marioterm.cachix.org as a substituter
       # (the flake's nixConfig offers it) so `nix run` is a download.
       # Only main builds are pushed.
       - uses: cachix/cachix-action@v17
         with:
-          name: rioterm
+          name: marioterm
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           skipPush: ${{ github.event_name == 'pull_request' }}
       - uses: DeterminateSystems/flake-checker-action@main
