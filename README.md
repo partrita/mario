@@ -21,6 +21,14 @@
 
 Documentation: [marioterm.com](https://marioterm.com).
 
+## About
+
+Mario is a hardware-accelerated GPU terminal emulator, a rebrand of
+[Rio](https://github.com/raphamorim/rio) focused on running everywhere —
+desktop (Linux, macOS, Windows) and the browser. It is maintained under
+the `mario` name with a distinct logo (a white mustache sets it apart
+from Rio) and its own release/CI pipeline.
+
 ## Supporting the Project
 
 If you use and like Mario, please consider sponsoring it: your support helps to cover the fees required to maintain the project and to validate the time spent working on it!
