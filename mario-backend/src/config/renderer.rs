@@ -27,6 +27,13 @@ pub struct Renderer {
     /// are not yet implemented on the CPU path.
     #[serde(default = "default_use_cpu", rename = "use-cpu")]
     pub use_cpu: bool,
+
+    /// Low-latency mode: bypasses vblank frame pacing and keeps the event
+    /// loop spinning (Poll) whenever there is pending damage, at the cost
+    /// of higher CPU usage. Useful for interactive workloads where input→
+    /// display delay matters more than throughput.
+    #[serde(default = "bool::default", rename = "low-latency")]
+    pub low_latency: bool,
 }
 
 fn default_use_cpu() -> bool {
@@ -69,6 +76,7 @@ impl Default for Renderer {
             filters: Vec::default(),
             strategy: RendererStategy::Events,
             use_cpu: default_use_cpu(),
+            low_latency: false,
         }
     }
 }

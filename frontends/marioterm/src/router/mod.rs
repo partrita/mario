@@ -760,6 +760,8 @@ pub struct RouteWindow<'a> {
     pub render_timestamp: Instant,
     #[cfg_attr(target_os = "macos", allow(dead_code))]
     pub vblank_interval: Duration,
+    /// Low-latency mode: bypasses vblank frame pacing in `wait_until()`.
+    pub low_latency: bool,
     pub winit_window: Window,
     pub screen: Screen<'a>,
 }
@@ -770,6 +772,11 @@ impl<'a> RouteWindow<'a> {
     }
 
     pub fn wait_until(&self) -> Option<Duration> {
+        // Low-latency mode: bypass vblank frame pacing, render immediately
+        if self.low_latency {
+            return None;
+        }
+
         // If we need to render after occlusion, render immediately
         if self.needs_render_after_occlusion {
             return None;
@@ -943,6 +950,7 @@ impl<'a> RouteWindow<'a> {
         Self {
             vblank_interval: monitor_vblank_interval,
             render_timestamp: Instant::now(),
+            low_latency: config.renderer.low_latency,
             is_focused,
             focus_seen: false,
             last_window_title: String::new(),

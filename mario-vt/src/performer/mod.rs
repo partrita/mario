@@ -60,11 +60,13 @@ const READ_BUFFER_SIZE: usize = 0x10_0000;
 const READ_CHUNK: usize = 65536;
 /// Max bytes to parse per terminal lease. The lease spans the whole
 /// `pty_read` call, so this bounds how long the renderer can wait for
-/// its snapshot (~1ms of parsing at full SGR density, well inside a
-/// 120Hz frame budget); measured ~3% more drain throughput than
-/// yielding per chunk.
+/// its snapshot. Kept at one READ_CHUNK (64 KiB) so the terminal lock
+/// is held for the shortest practical time: the renderer gets the lock
+/// back between chunks, minimizing input→display latency for interactive
+/// output. (Measured ~3% lower drain throughput than 4x chunk, but
+/// sub-millisecond lock holds are more important for latency.)
 #[cfg(feature = "pty")]
-const MAX_LOCKED_READ: usize = READ_CHUNK * 4;
+const MAX_LOCKED_READ: usize = READ_CHUNK;
 
 #[cfg(feature = "pty")]
 #[derive(Debug, PartialEq, Eq)]

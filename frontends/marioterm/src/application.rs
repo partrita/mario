@@ -2303,13 +2303,17 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                 // }
 
                 // Game mode = unlocked framerate, so keep the event loop
-                // spinning. Every other case is vsync-paced: a
+                // spinning. Low-latency mode also uses Poll so pending
+                // damage renders immediately instead of waiting for the
+                // next vsync. Every other case is vsync-paced: a
                 // `request_redraw` tells winit to deliver
                 // `RedrawRequested` at the next platform vsync, and the
                 // OS parks the thread until that event arrives. Busy-
                 // polling between vsyncs here would burn CPU without
                 // delivering more frames.
-                if self.config.renderer.strategy.is_game() {
+                let is_game = self.config.renderer.strategy.is_game();
+                let low_latency = self.config.renderer.low_latency;
+                if is_game || low_latency {
                     route.request_redraw();
                     event_loop.set_control_flow(ControlFlow::Poll);
                 } else {
@@ -2345,9 +2349,30 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
             event_loop.exit();
             return;
         }
-        let control_flow = match self.scheduler.update() {
-            Some(instant) => ControlFlow::WaitUntil(instant),
-            None => ControlFlow::Wait,
+
+        // Low-latency mode: keep the event loop spinning (Poll) so
+        // pending damage renders immediately instead of parking the
+        // thread until the next event or vsync.
+        let low_latency = self.config.renderer.low_latency;
+
+        let has_dirty = self.router.routes.values().any(|route| {
+            route
+                .window
+                .screen
+                .ctx()
+                .current()
+                .renderable_content
+                .pending_update
+                .is_dirty()
+        });
+
+        let control_flow = if low_latency || has_dirty {
+            ControlFlow::Poll
+        } else {
+            match self.scheduler.update() {
+                Some(instant) => ControlFlow::WaitUntil(instant),
+                None => ControlFlow::Wait,
+            }
         };
         event_loop.set_control_flow(control_flow);
     }
