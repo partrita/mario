@@ -2,15 +2,14 @@ name: Test
 
 on:
   push:
-    # Pushes to any other branch with an open PR already run the
-    # pull_request event; triggering both doubled every job.
-    branches: [main]
+    branches: [mario]
     paths:
       - '**/*.rs'
       - '**/Cargo.toml'
       - '**/Cargo.lock'
       - '.github/workflows/test.yml'
   pull_request:
+    branches: [mario]
     paths:
       - '**/*.rs'
       - '**/Cargo.toml'
