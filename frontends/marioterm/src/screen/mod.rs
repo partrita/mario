@@ -31,7 +31,6 @@ use crate::renderer::{utils::padding_top_from_config, Renderer};
 use crate::screen::hint::HintMatches;
 use crate::selection::{Selection, SelectionType};
 use core::fmt::Debug;
-use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 use mario_backend::clipboard::Clipboard;
 use mario_backend::clipboard::ClipboardType;
 use mario_backend::config::layout::Margin;
@@ -52,6 +51,7 @@ use mario_window::keyboard::ModifiersKeyState;
 use mario_window::keyboard::{Key, KeyLocation, ModifiersState, NamedKey};
 use mario_window::platform::modifier_supplement::KeyEventExtModifierSupplement;
 use mario_window::window::CursorIcon;
+use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 use std::error::Error;
 use std::ffi::OsStr;
 use touch::TouchPurpose;
@@ -662,7 +662,10 @@ impl Screen<'_> {
     }
 
     #[inline]
-    pub fn resize(&mut self, new_size: mario_window::dpi::PhysicalSize<u32>) -> &mut Self {
+    pub fn resize(
+        &mut self,
+        new_size: mario_window::dpi::PhysicalSize<u32>,
+    ) -> &mut Self {
         if self
             .context_manager
             .current()
@@ -693,7 +696,10 @@ impl Screen<'_> {
     /// producer de-dupes on the numeric value and wake notifications
     /// coalesce), so cheap checkpoints call this instead of trusting
     /// event delivery. Returns whether a rescale ran.
-    pub fn reconcile_scale(&mut self, winit_window: &mario_window::window::Window) -> bool {
+    pub fn reconcile_scale(
+        &mut self,
+        winit_window: &mario_window::window::Window,
+    ) -> bool {
         let live_scale = winit_window.scale_factor() as f32;
         if live_scale > 0.0
             && (live_scale - self.sugarloaf.scale_factor()).abs() > f32::EPSILON
@@ -4293,7 +4299,9 @@ impl Screen<'_> {
                             RowsToRebuild::Dirty
                         }
                         mario_backend::event::TerminalDamage::CursorOnly
-                        | mario_backend::event::TerminalDamage::Noop => RowsToRebuild::None,
+                        | mario_backend::event::TerminalDamage::Noop => {
+                            RowsToRebuild::None
+                        }
                     }
                 };
 
@@ -4577,7 +4585,8 @@ impl Screen<'_> {
                 // above; their bg/text stays untouched. Same gate as
                 // .
                 let (cursor_pos, cursor_col_u, cursor_bg_u) =
-                    if matches!(render_style, Some(mario_grid::CursorRenderStyle::Block)) {
+                    if matches!(render_style, Some(mario_grid::CursorRenderStyle::Block))
+                    {
                         (
                             [p.cursor_col as u32, p.cursor_row as u32],
                             [bg_col[0], bg_col[1], bg_col[2], bg_col[3]],
@@ -4987,7 +4996,8 @@ impl Screen<'_> {
                 }
                 let any = !dirty_lines.is_empty();
                 for line in dirty_lines {
-                    terminal.grid[mario_backend::crosswords::pos::Line(line)].dirty = true;
+                    terminal.grid[mario_backend::crosswords::pos::Line(line)].dirty =
+                        true;
                 }
                 drop(terminal);
 

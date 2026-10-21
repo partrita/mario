@@ -43,7 +43,9 @@ pub fn padding_top_from_config(
 }
 
 #[inline]
-pub fn terminal_dimensions(layout: &ContextDimension) -> mario_backend::event::WindowSize {
+pub fn terminal_dimensions(
+    layout: &ContextDimension,
+) -> mario_backend::event::WindowSize {
     let width = layout.width - layout.margin.left - layout.margin.right;
     let height = layout.height - layout.margin.top - layout.margin.bottom;
     mario_backend::event::WindowSize {

@@ -7,7 +7,6 @@ mod render_state;
 pub use key::{
     encode as encode_key, EncodeContext, Key, KeyAction, KeyEvent, KittyFlags, Modifiers,
 };
-pub use render_state::{RenderState, ViewportSelection};
 pub use mario_vt::clipboard::ClipboardType;
 pub use mario_vt::config::colors::term::TermColors;
 pub use mario_vt::config::colors::{AnsiColor, ColorRgb, NamedColor};
@@ -17,6 +16,7 @@ pub use mario_vt::crosswords::square::{Extras, Square};
 pub use mario_vt::crosswords::style::{Style, StyleFlags};
 pub use mario_vt::grapheme_lut::cluster_width;
 pub use mario_vt::selection::SelectionRange;
+pub use render_state::{RenderState, ViewportSelection};
 
 pub use mario_vt::ansi::CursorShape;
 pub use mario_vt::crosswords::pos::Side;
@@ -191,7 +191,8 @@ impl Listener {
             MarioEvent::Bell(_) => {
                 self.delegate.action(self.surface_id, Action::RingBell);
             }
-            MarioEvent::CursorBlinkingChange | MarioEvent::CursorBlinkingChangeOnRoute(_) => {
+            MarioEvent::CursorBlinkingChange
+            | MarioEvent::CursorBlinkingChangeOnRoute(_) => {
                 self.delegate
                     .action(self.surface_id, Action::CursorBlinkingChange);
             }
@@ -1271,7 +1272,8 @@ mod tests {
     fn cluster_width_through_c_abi() {
         let cps: [u32; 3] = [0x1F468, 0x200D, 0x1F33E];
         let mut width: u8 = 0xFF;
-        let len = unsafe { capi::mario_cluster_width(cps.as_ptr(), cps.len(), &mut width) };
+        let len =
+            unsafe { capi::mario_cluster_width(cps.as_ptr(), cps.len(), &mut width) };
         assert_eq!((len, width), (3, 2));
 
         // The width out-param is optional.
@@ -1450,8 +1452,8 @@ mod tests {
         assert_eq!(state.link_at(0, 0), None);
         assert_eq!(state.link_at(0, 4), Some("https://marioterm.com"));
         assert_eq!(state.link_at(0, 11), Some("https://marioterm.com"));
-        assert_eq!(state.link_at(0, 13), None);
-        assert_eq!(state.link_run(0, 6), Some((4, 11)));
+        assert_eq!(state.link_at(0, 14), None);
+        assert_eq!(state.link_run(0, 6), Some((4, 13)));
         assert_eq!(state.link_run(0, 0), None);
     }
 
@@ -1729,13 +1731,13 @@ mod tests {
 
         let (uri, start, end) = surface.url_at(0, 10).expect("hover on the url");
         assert_eq!(uri, "https://mario.dev");
-        assert_eq!((start, end), (4, 18));
+        assert_eq!((start, end), (4, 20));
         // The comma after the URL is prose, not link.
-        assert!(surface.url_at(0, 19).is_none());
+        assert!(surface.url_at(0, 21).is_none());
         // Parenthesized URL: closing paren and period trimmed.
         let (uri, start, end) = surface.url_at(0, 30).expect("hover in parens");
         assert_eq!(uri, "http://a.b/c");
-        assert_eq!((start, end), (25, 36));
+        assert_eq!((start, end), (27, 38));
         // Plain words miss.
         assert!(surface.url_at(0, 0).is_none());
     }
@@ -1765,7 +1767,7 @@ mod tests {
         surface.scroll(100);
         let (uri, start, end) = surface.url_at(0, 3).expect("scrolled to top");
         assert_eq!(uri, "https://mario.dev/x");
-        assert_eq!((start, end), (0, 16));
+        assert_eq!((start, end), (0, 18));
     }
 
     // A URL that wraps across rows resolves whole from either row, with

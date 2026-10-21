@@ -4,14 +4,14 @@ pub mod title;
 use crate::ansi::CursorShape;
 use crate::context::title::{update_title, ContextTitle};
 use crate::event::sync::FairMutex;
-use crate::event::{Msg, MarioEvent};
+use crate::event::{MarioEvent, Msg};
 pub use crate::layout::{ContextDimension, ContextGrid, ContextGridItem};
 use crate::messenger::Messenger;
 use crate::performer::{self, Machine};
-use renderable::Cursor;
-use renderable::RenderableContent;
 use mario_backend::config::layout::Margin;
 use mario_backend::config::Shell;
+use renderable::Cursor;
+use renderable::RenderableContent;
 use smallvec::{smallvec, SmallVec};
 
 use mario_backend::crosswords::{Crosswords, MIN_COLUMNS, MIN_LINES};
@@ -711,8 +711,10 @@ impl<T: EventListener + Clone + std::marker::Send + 'static> ContextManager<T> {
     #[inline]
     pub fn select_tab(&mut self, tab_index: usize) {
         if self.config.is_native {
-            self.event_proxy
-                .send_event(MarioEvent::SelectNativeTabByIndex(tab_index), self.window_id);
+            self.event_proxy.send_event(
+                MarioEvent::SelectNativeTabByIndex(tab_index),
+                self.window_id,
+            );
             return;
         }
 
@@ -739,12 +741,14 @@ impl<T: EventListener + Clone + std::marker::Send + 'static> ContextManager<T> {
 
     #[inline]
     pub fn hide(&mut self) {
-        self.event_proxy.send_event(MarioEvent::Hide, self.window_id);
+        self.event_proxy
+            .send_event(MarioEvent::Hide, self.window_id);
     }
 
     #[inline]
     pub fn quit(&mut self) {
-        self.event_proxy.send_event(MarioEvent::Quit, self.window_id);
+        self.event_proxy
+            .send_event(MarioEvent::Quit, self.window_id);
     }
 
     #[cfg(target_os = "macos")]
@@ -1065,7 +1069,9 @@ impl<T: EventListener + Clone + std::marker::Send + 'static> ContextManager<T> {
     }
 
     #[inline]
-    pub fn get_current_grid_scaled_margin(&self) -> mario_backend::config::layout::Margin {
+    pub fn get_current_grid_scaled_margin(
+        &self,
+    ) -> mario_backend::config::layout::Margin {
         self.contexts[self.current_index].get_scaled_margin()
     }
 

@@ -1471,7 +1471,10 @@ impl GridGlyphRasterizer {
         // invisible space glyph instead of falling back to a notdef
         // tofu box.
         if ch == mario_backend::ansi::kitty_virtual::PLACEHOLDER {
-            return (mario_backend::sugarloaf::font::FONT_ID_REGULAR as u32, false);
+            return (
+                mario_backend::sugarloaf::font::FONT_ID_REGULAR as u32,
+                false,
+            );
         }
 
         // ASCII printable + regular style → always primary font, never
@@ -1484,7 +1487,10 @@ impl GridGlyphRasterizer {
         // the bold and italic font IDs are dynamic (depend on which
         // faces the user loaded), and non-ASCII can hit fallback.
         if style_flags == 0 && (' '..='~').contains(&ch) {
-            return (mario_backend::sugarloaf::font::FONT_ID_REGULAR as u32, false);
+            return (
+                mario_backend::sugarloaf::font::FONT_ID_REGULAR as u32,
+                false,
+            );
         }
 
         *self
@@ -2060,7 +2066,8 @@ pub fn build_row_fg<P: GridPalette>(
         // sprite (crisp + seamless in any font) instead of the font
         // glyph. Glyph-protocol customs (handled above) still win. If the
         // sprite can't be produced we fall through to normal shaping.
-        if use_drawable_chars && mario_backend::sugarloaf::sprite::is_drawable(ch as u32) {
+        if use_drawable_chars && mario_backend::sugarloaf::sprite::is_drawable(ch as u32)
+        {
             if let Some(slot) =
                 ensure_drawable_sprite(grid, ch as u32, cell_w_u32, cell_h_u32)
             {
@@ -2791,7 +2798,9 @@ fn emit_underlines<P: GridPalette>(
     row_sel: Option<RowSelection>,
     row_hints: &[RowHint],
     preedit: Option<&PreeditRow<'_>>,
-    glyph_registry: Option<&mario_backend::sugarloaf::font::glyph_registry::GlyphRegistry>,
+    glyph_registry: Option<
+        &mario_backend::sugarloaf::font::glyph_registry::GlyphRegistry,
+    >,
     fg_scratch: &mut Vec<CellText>,
 ) {
     for x in 0..cols {
@@ -2873,7 +2882,9 @@ fn emit_strikethroughs<P: GridPalette>(
     row_sel: Option<RowSelection>,
     row_hints: &[RowHint],
     preedit: Option<&PreeditRow<'_>>,
-    glyph_registry: Option<&mario_backend::sugarloaf::font::glyph_registry::GlyphRegistry>,
+    glyph_registry: Option<
+        &mario_backend::sugarloaf::font::glyph_registry::GlyphRegistry,
+    >,
     fg_scratch: &mut Vec<CellText>,
 ) {
     for x in 0..cols {

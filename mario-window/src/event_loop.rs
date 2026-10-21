@@ -114,7 +114,8 @@ impl<T> EventLoopBuilder<T> {
     )]
     #[inline]
     pub fn build(&mut self) -> Result<EventLoop<T>, EventLoopError> {
-        let _span = tracing::debug_span!("mario_window::EventLoopBuilder::build").entered();
+        let _span =
+            tracing::debug_span!("mario_window::EventLoopBuilder::build").entered();
 
         if EVENT_LOOP_CREATED.swap(true, Ordering::Relaxed) {
             return Err(EventLoopError::RecreationAttempt);
@@ -466,8 +467,9 @@ impl ActiveEventLoop {
     /// **Wayland / Web:** Always returns `None`.
     #[inline]
     pub fn primary_monitor(&self) -> Option<MonitorHandle> {
-        let _span = tracing::debug_span!("mario_window::ActiveEventLoop::primary_monitor",)
-            .entered();
+        let _span =
+            tracing::debug_span!("mario_window::ActiveEventLoop::primary_monitor",)
+                .entered();
 
         self.p
             .primary_monitor()
@@ -520,7 +522,8 @@ impl ActiveEventLoop {
     ///
     /// See [`LoopExiting`][Event::LoopExiting].
     pub fn exit(&self) {
-        let _span = tracing::debug_span!("mario_window::ActiveEventLoop::exit",).entered();
+        let _span =
+            tracing::debug_span!("mario_window::ActiveEventLoop::exit",).entered();
 
         self.p.exit()
     }

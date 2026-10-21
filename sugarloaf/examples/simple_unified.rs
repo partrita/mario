@@ -1,7 +1,6 @@
 // Example demonstrating the unified rich text and quad rendering
 // Run with: cargo run --example simple_unified
 
-use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use mario_window::application::ApplicationHandler;
 use mario_window::event_loop::ControlFlow;
 use mario_window::event_loop::{ActiveEventLoop, DeviceEvents};
@@ -9,6 +8,7 @@ use mario_window::window::{Window, WindowId};
 use mario_window::{
     dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop, window::WindowAttributes,
 };
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::error::Error;
 use sugarloaf::{layout::RootStyle, Sugarloaf, SugarloafWindow, SugarloafWindowSize};
 

@@ -1,3 +1,10 @@
+use mario_window::application::ApplicationHandler;
+use mario_window::event_loop::ControlFlow;
+use mario_window::event_loop::{ActiveEventLoop, DeviceEvents};
+use mario_window::window::{Window, WindowId};
+use mario_window::{
+    dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop, window::WindowAttributes,
+};
 /// Draw Order Example
 ///
 /// Demonstrates the draw order system (painter's algorithm).
@@ -9,13 +16,6 @@
 /// - Green (order=1) renders second (middle)
 /// - Blue (order=2) renders last (top)
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-use mario_window::application::ApplicationHandler;
-use mario_window::event_loop::ControlFlow;
-use mario_window::event_loop::{ActiveEventLoop, DeviceEvents};
-use mario_window::window::{Window, WindowId};
-use mario_window::{
-    dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop, window::WindowAttributes,
-};
 use std::error::Error;
 use sugarloaf::{
     layout::RootStyle, Color, Sugarloaf, SugarloafWindow, SugarloafWindowSize,

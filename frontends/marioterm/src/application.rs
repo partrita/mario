@@ -11,7 +11,6 @@ use crate::watcher::configuration_file_updates;
     not(target_os = "windows")
 ))]
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use raw_window_handle::HasDisplayHandle;
 use mario_backend::clipboard::{Clipboard, ClipboardType};
 use mario_backend::config::colors::{ColorRgb, NamedColor};
 use mario_window::application::ApplicationHandler;
@@ -27,6 +26,7 @@ use mario_window::platform::macos::ActiveEventLoopExtMacOS;
 use mario_window::platform::macos::WindowExtMacOS;
 use mario_window::window::WindowId;
 use mario_window::window::{CursorIcon, Fullscreen};
+use raw_window_handle::HasDisplayHandle;
 use std::error::Error;
 use std::time::{Duration, Instant};
 
@@ -584,19 +584,22 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                 }
             }
             MarioEventType::Mario(MarioEvent::UpdateConfig) => {
-                let (config, config_error) = match mario_backend::config::Config::try_load()
-                {
-                    Ok(config) => (config, None),
-                    Err(error) => (mario_backend::config::Config::default(), Some(error)),
-                };
+                let (config, config_error) =
+                    match mario_backend::config::Config::try_load() {
+                        Ok(config) => (config, None),
+                        Err(error) => {
+                            (mario_backend::config::Config::default(), Some(error))
+                        }
+                    };
 
                 let has_font_updates = self.config.fonts != config.fonts;
                 let has_binding_updates = self.config.bindings != config.bindings;
 
                 let font_library_errors = if has_font_updates {
-                    let new_font_library = mario_backend::sugarloaf::font::FontLibrary::new(
-                        config.fonts.to_owned(),
-                    );
+                    let new_font_library =
+                        mario_backend::sugarloaf::font::FontLibrary::new(
+                            config.fonts.to_owned(),
+                        );
                     *self.router.font_library = new_font_library.0;
                     new_font_library.1
                 } else {
@@ -813,8 +816,10 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                         Topic::Render,
                         route.window.screen.ctx().current_route(),
                     );
-                    let event =
-                        EventPayload::new(MarioEventType::Mario(MarioEvent::Render), window_id);
+                    let event = EventPayload::new(
+                        MarioEventType::Mario(MarioEvent::Render),
+                        window_id,
+                    );
 
                     if !self.scheduler.scheduled(timer_id) {
                         self.scheduler.schedule(
@@ -845,7 +850,9 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
             MarioEventType::Mario(MarioEvent::BlinkCursor(millis, route_id)) => {
                 let timer_id = TimerId::new(Topic::CursorBlinking, route_id);
                 let event = EventPayload::new(
-                    MarioEventType::Mario(MarioEvent::CursorBlinkingChangeOnRoute(route_id)),
+                    MarioEventType::Mario(MarioEvent::CursorBlinkingChangeOnRoute(
+                        route_id,
+                    )),
                     window_id,
                 );
 
@@ -922,7 +929,10 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
-            MarioEventType::Mario(MarioEvent::ClipboardStore(clipboard_type, content)) => {
+            MarioEventType::Mario(MarioEvent::ClipboardStore(
+                clipboard_type,
+                content,
+            )) => {
                 let Router {
                     routes, clipboard, ..
                 } = &mut self.router;

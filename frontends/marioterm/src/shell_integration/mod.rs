@@ -351,8 +351,8 @@ mod test {
     #[cfg(unix)]
     #[test]
     fn zsh_integration_emits_a_cwd_report() {
-        let base =
-            std::env::temp_dir().join(format!("mario-si-zsh-test-{}", std::process::id()));
+        let base = std::env::temp_dir()
+            .join(format!("mario-si-zsh-test-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&base);
         materialize(&base).unwrap();
         // An empty restored ZDOTDIR keeps the developer's own zsh
@@ -386,8 +386,8 @@ mod test {
     #[cfg(unix)]
     #[test]
     fn fish_integration_emits_a_cwd_report_and_restores_env() {
-        let base =
-            std::env::temp_dir().join(format!("mario-si-fish-test-{}", std::process::id()));
+        let base = std::env::temp_dir()
+            .join(format!("mario-si-fish-test-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&base);
         materialize(&base).unwrap();
         // An empty config home keeps the developer's own fish config
@@ -420,8 +420,10 @@ mod test {
 
     #[test]
     fn materialize_writes_scripts_idempotently() {
-        let base = std::env::temp_dir()
-            .join(format!("mario-shell-integration-test-{}", std::process::id()));
+        let base = std::env::temp_dir().join(format!(
+            "mario-shell-integration-test-{}",
+            std::process::id()
+        ));
         let _ = std::fs::remove_dir_all(&base);
 
         materialize(&base).unwrap();

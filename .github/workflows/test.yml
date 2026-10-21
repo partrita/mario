@@ -30,8 +30,6 @@ env:
   # size, which is what cache upload/download and the 10GB repo cache
   # eviction actually pay for. Backtraces keep function names.
   CARGO_PROFILE_DEV_DEBUG: 0
-  # Ship the fast mold linker when available: cuts link time for the large
-  # mario-vt / mario-backend crates significantly.
   CARGO_NET_RETRY: 10
 
 jobs:
@@ -57,12 +55,6 @@ jobs:
         with:
           cache-on-failure: true
 
-      - name: Install mold linker (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -yq && sudo apt-get install -yq mold
-          echo "CARGO_NET_RETRY=10" >> $GITHUB_ENV
-
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update -yq && sudo apt-get install -yq libasound2-dev libfontconfig1-dev glslang-tools
@@ -78,8 +70,8 @@ jobs:
 
       - name: cargo test (parallel, with timings)
         # --timings records per-crate duration so we can spot slow tests;
-        # --test-threads=0 uses all logical CPUs for maximum parallelism.
-        run: cargo test --features wgpu --timings --test-threads=0 ${{ runner.os == 'Linux' && '' || '--no-default-features' }}
+        # libtest already runs tests on all logical CPUs by default.
+        run: cargo test --features wgpu --timings ${{ runner.os == 'Linux' && '' || '--no-default-features' }}
 
       - name: Upload build timings
         # One HTML per run showing which crates dominated and whether the

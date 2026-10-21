@@ -904,7 +904,7 @@ mod tests {
         // Greedy stopped at linebreak.
         let mut regex = RegexSearch::new("Mario.*termin").unwrap();
         let start = Pos::new(Line(0), Column(0));
-        let end = Pos::new(Line(0), Column(25));
+        let end = Pos::new(Line(0), Column(29));
         assert_eq!(
             term.regex_search_right(&mut regex, start, end),
             Some(start..=end)
@@ -913,7 +913,7 @@ mod tests {
         // Greedy stopped at dead state.
         let mut regex = RegexSearch::new("Mario[^y]*termin").unwrap();
         let start = Pos::new(Line(0), Column(0));
-        let end = Pos::new(Line(0), Column(15));
+        let end = Pos::new(Line(0), Column(19));
         assert_eq!(
             term.regex_search_right(&mut regex, start, end),
             Some(start..=end)
@@ -996,7 +996,7 @@ mod tests {
         // Make sure dead state cell is skipped when reversing.
         let mut regex = RegexSearch::new("marioterm").unwrap();
         let start = Pos::new(Line(0), Column(0));
-        let end = Pos::new(Line(0), Column(6));
+        let end = Pos::new(Line(0), Column(8));
         assert_eq!(
             term.regex_search_right(&mut regex, start, end),
             Some(start..=end)

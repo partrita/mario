@@ -111,9 +111,9 @@ mod platform {
         let _: Result<u32, _> = proxy.call(
             "Notify",
             &(
-                "Mario",          // app_name
+                "Mario",        // app_name
                 0u32,           // replaces_id
-                "mario",          // app_icon
+                "mario",        // app_icon
                 title,          // summary
                 body,           // body
                 &[] as &[&str], // actions

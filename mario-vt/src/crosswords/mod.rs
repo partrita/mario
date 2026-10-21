@@ -49,10 +49,10 @@ use attr::*;
 use base64::{engine::general_purpose, Engine as _};
 use bitflags::bitflags;
 use grid::row::Row;
+use mario_graphics::{GraphicData, MAX_GRAPHIC_DIMENSIONS};
 use pos::{
     Boundary, CharsetIndex, Column, Cursor, CursorState, Direction, Line, Pos, Side,
 };
-use mario_graphics::{GraphicData, MAX_GRAPHIC_DIMENSIONS};
 use square::{Hyperlink, LineLength, Square};
 use std::mem;
 use std::ops::{Index, IndexMut, Range};
@@ -3939,15 +3939,19 @@ impl<U: EventListener> Handler for Crosswords<U> {
                 // color, 52: clipboard access via OSC 52 (probed by
                 // tcell and others before enabling clipboard writes).
                 let text = String::from("\x1b[?62;4;6;22;52c");
-                self.event_proxy
-                    .send_event(MarioEvent::PtyWrite(self.route_id, text), self.window_id);
+                self.event_proxy.send_event(
+                    MarioEvent::PtyWrite(self.route_id, text),
+                    self.window_id,
+                );
             }
             Some('>') => {
                 trace!("Reporting secondary device attributes");
                 let version = version_number(env!("CARGO_PKG_VERSION"));
                 let text = format!("\x1b[>0;{version};1c");
-                self.event_proxy
-                    .send_event(MarioEvent::PtyWrite(self.route_id, text), self.window_id);
+                self.event_proxy.send_event(
+                    MarioEvent::PtyWrite(self.route_id, text),
+                    self.window_id,
+                );
             }
             _ => debug!("Unsupported device attributes intermediate"),
         }
@@ -4027,14 +4031,18 @@ impl<U: EventListener> Handler for Crosswords<U> {
         match arg {
             5 => {
                 let text = String::from("\x1b[0n");
-                self.event_proxy
-                    .send_event(MarioEvent::PtyWrite(self.route_id, text), self.window_id);
+                self.event_proxy.send_event(
+                    MarioEvent::PtyWrite(self.route_id, text),
+                    self.window_id,
+                );
             }
             6 => {
                 let pos = self.grid.cursor.pos;
                 let text = format!("\x1b[{};{}R", pos.row + 1, pos.col + 1);
-                self.event_proxy
-                    .send_event(MarioEvent::PtyWrite(self.route_id, text), self.window_id);
+                self.event_proxy.send_event(
+                    MarioEvent::PtyWrite(self.route_id, text),
+                    self.window_id,
+                );
             }
             _ => debug!("unknown device status query: {}", arg),
         };
@@ -5282,20 +5290,26 @@ impl<U: EventListener> Handler for Crosswords<U> {
     #[inline]
     fn kitty_graphics_response(&mut self, response: String) {
         // Send response back to the terminal
-        self.event_proxy
-            .send_event(MarioEvent::PtyWrite(self.route_id, response), self.window_id);
+        self.event_proxy.send_event(
+            MarioEvent::PtyWrite(self.route_id, response),
+            self.window_id,
+        );
     }
 
     #[inline]
     fn xtgettcap_response(&mut self, response: String) {
-        self.event_proxy
-            .send_event(MarioEvent::PtyWrite(self.route_id, response), self.window_id);
+        self.event_proxy.send_event(
+            MarioEvent::PtyWrite(self.route_id, response),
+            self.window_id,
+        );
     }
 
     #[inline]
     fn glyph_protocol_response(&mut self, response: String) {
-        self.event_proxy
-            .send_event(MarioEvent::PtyWrite(self.route_id, response), self.window_id);
+        self.event_proxy.send_event(
+            MarioEvent::PtyWrite(self.route_id, response),
+            self.window_id,
+        );
     }
 
     #[cfg(feature = "graphics")]

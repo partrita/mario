@@ -1277,14 +1277,15 @@ pub unsafe extern "C" fn sl_render_surface(
         // or tail slot, and (for the block style only) set the bg-tint
         // uniforms so the bg shader paints the cell and the text shader
         // inverts the glyph on top.
-        let render_style = mario_grid::cursor_render_style(mario_grid::CursorRenderInputs {
-            visible: cursor_visible,
-            focused,
-            blink_visible: cursor_blink_visible,
-            blinking: cursor_blinking,
-            preedit: preedit_active,
-            shape: cursor_shape,
-        });
+        let render_style =
+            mario_grid::cursor_render_style(mario_grid::CursorRenderInputs {
+                visible: cursor_visible,
+                focused,
+                blink_visible: cursor_blink_visible,
+                blinking: cursor_blinking,
+                preedit: preedit_active,
+                shape: cursor_shape,
+            });
         let mut block_cursor: Option<CellText> = None;
         let mut tail_cursor: Option<CellText> = None;
         if let Some(style) = render_style {

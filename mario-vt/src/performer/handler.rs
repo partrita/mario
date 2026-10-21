@@ -2556,7 +2556,7 @@ mod tests {
     fn test_single_capability_requests() {
         // Test terminal name
         let response = process_xtgettcap_request(b"544E"); // "TN"
-        assert_eq!(response, "\x1bP1+r544E=72696F\x1b\\");
+        assert_eq!(response, "\x1bP1+r544E=6D6172696F\x1b\\");
 
         // Test colors capability
         let response = process_xtgettcap_request(b"436F"); // "Co"

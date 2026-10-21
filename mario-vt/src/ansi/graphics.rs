@@ -5,8 +5,8 @@
 use crate::ansi::sixel;
 use crate::config::colors::ColorRgb;
 use crate::crosswords::grid::Dimensions;
-use parking_lot::Mutex;
 use mario_graphics::{GraphicData, GraphicId};
+use parking_lot::Mutex;
 use rustc_hash::FxHashMap;
 use std::mem;
 use std::sync::Arc;

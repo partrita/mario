@@ -499,7 +499,10 @@ fn color_to_c(color: AnsiColor) -> mario_color_s {
 /// host's own scheme. Direct-RGB cells carry their color inline and are
 /// untouched. (Dim/bold intensity remapping isn't applied here, matching
 /// `color_to_c`; it travels in the cell's style flags.)
-fn resolve_cell_color(color: AnsiColor, term_colors: &crate::TermColors) -> mario_color_s {
+fn resolve_cell_color(
+    color: AnsiColor,
+    term_colors: &crate::TermColors,
+) -> mario_color_s {
     let (idx, value, kind) = match color {
         AnsiColor::Named(named) => (named as usize, named as u16, RIO_COLOR_NAMED),
         AnsiColor::Indexed(index) => (index as usize, index as u16, RIO_COLOR_INDEXED),
@@ -922,7 +925,9 @@ pub unsafe extern "C" fn mario_surface_inject_output(
 /// The shell's current working directory (OSC 7), or NULL if unknown.
 /// Caller owns the returned string; free it with `mario_text_free`.
 #[no_mangle]
-pub unsafe extern "C" fn mario_surface_working_dir(surface: *const Surface) -> *mut c_char {
+pub unsafe extern "C" fn mario_surface_working_dir(
+    surface: *const Surface,
+) -> *mut c_char {
     catch_unwind(AssertUnwindSafe(|| {
         if surface.is_null() {
             return std::ptr::null_mut();
@@ -1452,7 +1457,9 @@ pub unsafe extern "C" fn mario_surface_foreground_process_name(
 /// Whether the alternate screen (full-screen TUIs) was active at the
 /// last update.
 #[no_mangle]
-pub unsafe extern "C" fn mario_render_state_alt_screen(state: *const RenderState) -> bool {
+pub unsafe extern "C" fn mario_render_state_alt_screen(
+    state: *const RenderState,
+) -> bool {
     catch_unwind(AssertUnwindSafe(|| {
         if state.is_null() {
             return false;
@@ -1613,7 +1620,9 @@ pub unsafe extern "C" fn mario_render_state_cursor(
 /// hid the cursor (DECTCEM) or the view is scrolled into history. Hosts that
 /// paint the cursor themselves read this next to `mario_render_state_cursor`.
 #[no_mangle]
-pub unsafe extern "C" fn mario_render_state_cursor_shape(state: *const RenderState) -> u8 {
+pub unsafe extern "C" fn mario_render_state_cursor_shape(
+    state: *const RenderState,
+) -> u8 {
     catch_unwind(AssertUnwindSafe(|| {
         if state.is_null() {
             return RIO_CURSOR_HIDDEN;

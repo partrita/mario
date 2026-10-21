@@ -134,7 +134,9 @@ impl From<WindowBlur> for mario_window::window::BlurStyle {
             WindowBlur::MacosGlassRegular => {
                 mario_window::window::BlurStyle::MacosGlassRegular
             }
-            WindowBlur::MacosGlassClear => mario_window::window::BlurStyle::MacosGlassClear,
+            WindowBlur::MacosGlassClear => {
+                mario_window::window::BlurStyle::MacosGlassClear
+            }
         }
     }
 }
@@ -293,7 +295,9 @@ impl Colorspace {
     }
 
     #[cfg(all(target_os = "macos", feature = "mario-window"))]
-    pub fn to_mario_window_colorspace(&self) -> mario_window::platform::macos::Colorspace {
+    pub fn to_mario_window_colorspace(
+        &self,
+    ) -> mario_window::platform::macos::Colorspace {
         match self {
             Colorspace::Srgb => mario_window::platform::macos::Colorspace::Srgb,
             Colorspace::DisplayP3 => mario_window::platform::macos::Colorspace::DisplayP3,

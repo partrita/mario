@@ -612,7 +612,8 @@ impl Window {
     /// [`WindowEvent::RedrawRequested`]: crate::event::WindowEvent::RedrawRequested
     #[inline]
     pub fn request_redraw(&self) {
-        let _span = tracing::debug_span!("mario_window::Window::request_redraw",).entered();
+        let _span =
+            tracing::debug_span!("mario_window::Window::request_redraw",).entered();
 
         self.window.maybe_queue_on_main(|w| w.request_redraw())
     }
@@ -694,7 +695,8 @@ impl Window {
     /// [safe area]: https://developer.apple.com/documentation/uikit/uiview/2891103-safeareainsets?language=objc
     #[inline]
     pub fn inner_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
-        let _span = tracing::debug_span!("mario_window::Window::inner_position",).entered();
+        let _span =
+            tracing::debug_span!("mario_window::Window::inner_position",).entered();
 
         self.window.maybe_wait_on_main(|w| w.inner_position())
     }
@@ -717,7 +719,8 @@ impl Window {
     /// - **Android / Wayland:** Always returns [`NotSupportedError`].
     #[inline]
     pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
-        let _span = tracing::debug_span!("mario_window::Window::outer_position",).entered();
+        let _span =
+            tracing::debug_span!("mario_window::Window::outer_position",).entered();
 
         self.window.maybe_wait_on_main(|w| w.outer_position())
     }
@@ -1004,7 +1007,8 @@ impl Window {
     ///   to `System` with a warning on earlier versions.
     #[inline]
     pub fn set_blur(&self, blur: BlurStyle) {
-        let _span = tracing::debug_span!("mario_window::Window::set_blur", ?blur).entered();
+        let _span =
+            tracing::debug_span!("mario_window::Window::set_blur", ?blur).entered();
         self.window.maybe_queue_on_main(move |w| w.set_blur(blur))
     }
 
@@ -1056,8 +1060,9 @@ impl Window {
     /// [`WindowEvent::Resized`]: crate::event::WindowEvent::Resized
     #[inline]
     pub fn set_resizable(&self, resizable: bool) {
-        let _span = tracing::debug_span!("mario_window::Window::set_resizable", resizable)
-            .entered();
+        let _span =
+            tracing::debug_span!("mario_window::Window::set_resizable", resizable)
+                .entered();
         self.window
             .maybe_queue_on_main(move |w| w.set_resizable(resizable))
     }
@@ -1110,8 +1115,9 @@ impl Window {
     /// - **Wayland:** Un-minimize is unsupported.
     #[inline]
     pub fn set_minimized(&self, minimized: bool) {
-        let _span = tracing::debug_span!("mario_window::Window::set_minimized", minimized)
-            .entered();
+        let _span =
+            tracing::debug_span!("mario_window::Window::set_minimized", minimized)
+                .entered();
         self.window
             .maybe_queue_on_main(move |w| w.set_minimized(minimized))
     }
@@ -1141,8 +1147,9 @@ impl Window {
     /// - **iOS / Android / Web:** Unsupported.
     #[inline]
     pub fn set_maximized(&self, maximized: bool) {
-        let _span = tracing::debug_span!("mario_window::Window::set_maximized", maximized)
-            .entered();
+        let _span =
+            tracing::debug_span!("mario_window::Window::set_maximized", maximized)
+                .entered();
         self.window
             .maybe_queue_on_main(move |w| w.set_maximized(maximized))
     }
@@ -1350,8 +1357,9 @@ impl Window {
     /// [`KeyboardInput`]: crate::event::WindowEvent::KeyboardInput
     #[inline]
     pub fn set_ime_allowed(&self, allowed: bool) {
-        let _span = tracing::debug_span!("mario_window::Window::set_ime_allowed", allowed)
-            .entered();
+        let _span =
+            tracing::debug_span!("mario_window::Window::set_ime_allowed", allowed)
+                .entered();
         self.window
             .maybe_queue_on_main(move |w| w.set_ime_allowed(allowed))
     }
@@ -1465,9 +1473,11 @@ impl Window {
     ///
     /// [`NSWindowSharingNone`]: https://developer.apple.com/documentation/appkit/nswindowsharingtype/nswindowsharingnone
     pub fn set_content_protected(&self, protected: bool) {
-        let _span =
-            tracing::debug_span!("mario_window::Window::set_content_protected", protected)
-                .entered();
+        let _span = tracing::debug_span!(
+            "mario_window::Window::set_content_protected",
+            protected
+        )
+        .entered();
         self.window
             .maybe_queue_on_main(move |w| w.set_content_protected(protected))
     }

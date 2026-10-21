@@ -67,10 +67,10 @@ pub fn setup(
             use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
             while let Ok(event) = GlobalHotKeyEvent::receiver().recv() {
                 if event.state == HotKeyState::Pressed {
-                    event_proxy
-                        .send_event(MarioEventType::Mario(MarioEvent::ToggleQuake), unsafe {
-                            mario_window::window::WindowId::dummy().into()
-                        });
+                    event_proxy.send_event(
+                        MarioEventType::Mario(MarioEvent::ToggleQuake),
+                        unsafe { mario_window::window::WindowId::dummy().into() },
+                    );
                 }
             }
         });
@@ -81,7 +81,9 @@ pub fn setup(
 
 /// Triggers for every `ToggleQuake` binding in the config, in the
 /// format `parse_hotkey` accepts.
-pub fn quake_triggers(keys: &[mario_backend::config::bindings::KeyBinding]) -> Vec<String> {
+pub fn quake_triggers(
+    keys: &[mario_backend::config::bindings::KeyBinding],
+) -> Vec<String> {
     keys.iter()
         .filter(|binding| binding.action.to_lowercase() == "togglequake")
         .map(|binding| {
