@@ -2,7 +2,7 @@
 
 Mario's embeddable terminal core: the VT state machine, ANSI/escape parser,
 grid with scrollback, selection, search, and PTY-facing event model,
-extracted from [Mario](https://github.com/raphamorim/mario) as a standalone,
+extracted from [Mario](https://github.com/partrita/mario) as a standalone,
 dependency-light crate.
 
 It carries **no rendering, GPU, or font-shaping dependencies**. You pair

@@ -431,7 +431,7 @@ This section documents the *[developer]* table of the configuration file.
 
 # BUGS
 
-Found a bug? Please report it at _https://github.com/raphamorim/mario/issues_.
+Found a bug? Please report it at _https://github.com/partrita/mario/issues_.
 
 # MAINTAINERS
 

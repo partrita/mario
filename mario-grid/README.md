@@ -2,7 +2,7 @@
 
 Mario's shared grid-emission layer: turns a row of terminal cells plus its
 resolved styles into the GPU cell primitives (`CellBg` / `CellText`)
-that [Mario](https://github.com/raphamorim/mario)'s renderer draws. One
+that [Mario](https://github.com/partrita/mario)'s renderer draws. One
 pass emits backgrounds, one run-building pass emits glyphs (shaping
 runs, drawable sprites, underlines), with selection, search-highlight,
 and hint-label handling applied per row.

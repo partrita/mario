@@ -64,7 +64,7 @@ pub fn setup_environment_variables(config: &mario_backend::config::Config) {
         std::env::set_var("TERM", terminfo);
     }
 
-    // https://github.com/raphamorim/mario/issues/200
+    // https://github.com/partrita/mario/issues/200
     std::env::set_var("TERM_PROGRAM", "mario");
     std::env::set_var("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION"));
 

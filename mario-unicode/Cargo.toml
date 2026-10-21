@@ -10,7 +10,7 @@ grid's widths and the renderer's segmentation can never disagree on
 what Unicode says.
 """
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/raphamorim/mario"
+repository = "https://github.com/partrita/mario"
 
 
 [dev-dependencies]

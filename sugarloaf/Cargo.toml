@@ -50,6 +50,7 @@ image_rs = { workspace = true }
 mario-graphics = { workspace = true, features = ["glyph"] }
 mario-fonts = { workspace = true }
 mario-unicode = { workspace = true }
+miniz_oxide = { workspace = true }
 guillotiere = "0.6.2"
 rustc-hash = { workspace = true }
 raw-window-handle = { workspace = true }
@@ -300,3 +301,6 @@ web-sys = { version = "0.3.61", features = [
     "WebGl2RenderingContext",
     "CanvasRenderingContext2d",
 ] }
+
+[build-dependencies]
+miniz_oxide = { workspace = true }

@@ -21,7 +21,7 @@ global-hotkey = "0.8.0"
 base64 = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "registry"] }
-wgpu = { workspace = true }
+wgpu = { workspace = true, optional = true }
 mario-backend = { workspace = true }
 mario-grid = { workspace = true }
 
@@ -68,6 +68,7 @@ cfg_aliases = "0.2.1"
 winres = "0.1.12"
 
 [target.'cfg(windows)'.dependencies]
+wgpu = { workspace = true }
 ahash = { version = "0.8.12", default-features = false, features = ["std"] }
 dunce = "1.0.5"
 tinyvec = { version = "1.8.1", features = ["alloc"] }
@@ -94,6 +95,8 @@ features = ["wgpu"]
 [target.'cfg(windows)'.dependencies.mario-backend]
 workspace = true
 features = ["wgpu"]
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wgpu = { workspace = true }
 [target.'cfg(target_arch = "wasm32")'.dependencies.sugarloaf]
 workspace = true
 features = ["wgpu"]
@@ -113,7 +116,7 @@ wayland = [
     "mario-window/wayland",
     "mario-window/wayland-dlopen",
 ]
-wgpu = ["sugarloaf/wgpu", "mario-backend/wgpu"]
+wgpu = ["sugarloaf/wgpu", "mario-backend/wgpu", "dep:wgpu"]
 
 # "mario-window/wayland-csd-adwaita-crossfont",
 

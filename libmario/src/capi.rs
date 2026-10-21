@@ -1274,16 +1274,15 @@ pub unsafe extern "C" fn mario_render_state_display_offset(
 /// embedder can offer icon glyphs (Powerline, Font Awesome, Material, ...)
 /// without shipping a font file or requiring one installed. Pair with
 /// [`mario_nerd_constrain`] for patched-font-quality scaling.
-static SYMBOLS_NERD_FONT: &[u8] = mario_fonts::SYMBOLS_NERD_FONT;
-
 /// The embedded symbols-only Nerd Font as raw TTF bytes. The pointer is
 /// static; never freed, valid for the process lifetime.
 #[no_mangle]
 pub unsafe extern "C" fn mario_symbols_nerd_font(len: *mut usize) -> *const u8 {
+    let font = mario_fonts::jbd2_nerd_font();
     if !len.is_null() {
-        unsafe { *len = SYMBOLS_NERD_FONT.len() };
+        unsafe { *len = font.len() };
     }
-    SYMBOLS_NERD_FONT.as_ptr()
+    font.as_ptr()
 }
 
 /// A glyph's bounding box in pixels, y-up, origin at the pen/baseline.

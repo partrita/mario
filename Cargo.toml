@@ -20,30 +20,30 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.5.28"
+version = "0.5.29"
 authors = ["Raphael Amorim <rapha850@gmail.com>"]
 edition = "2021"
 license = "MIT"
 keywords = ["graphics", "terminal", "application"]
 rust-version = "1.96.1"
-repository = "https://github.com/raphamorim/mario"
+repository = "https://github.com/partrita/mario"
 homepage = "https://marioterm.com"
-documentation = "https://github.com/raphamorim/mario#readme"
+documentation = "https://github.com/partrita/mario#readme"
 readme = "README.md"
 
 [workspace.dependencies]
-teletypewriter = { path = "teletypewriter", version = "0.5.28" }
-mario-backend = { path = "mario-backend", version = "0.5.28" }
-mario-window = { path = "mario-window", version = "0.5.28", default-features = false }
-mario-notifier = { path = "mario-notifier", version = "0.5.28" }
-mario-grapheme-width = { path = "mario-grapheme-width", version = "0.5.28" }
-sugarloaf = { path = "sugarloaf", version = "0.5.28" }
-corcovado = { path = "corcovado", version = "0.5.28" }
-mario-graphics = { path = "mario-graphics", version = "0.5.28" }
-mario-fonts = { path = "mario-fonts", version = "0.5.28" }
-mario-vt = { path = "mario-vt", version = "0.5.28" }
-mario-grid = { path = "mario-grid", version = "0.5.28" }
-mario-unicode = { path = "mario-unicode", version = "0.5.28" }
+teletypewriter = { path = "teletypewriter", version = "0.5.29" }
+mario-backend = { path = "mario-backend", version = "0.5.29" }
+mario-window = { path = "mario-window", version = "0.5.29", default-features = false }
+mario-notifier = { path = "mario-notifier", version = "0.5.29" }
+mario-grapheme-width = { path = "mario-grapheme-width", version = "0.5.29" }
+sugarloaf = { path = "sugarloaf", version = "0.5.29" }
+corcovado = { path = "corcovado", version = "0.5.29" }
+mario-graphics = { path = "mario-graphics", version = "0.5.29" }
+mario-fonts = { path = "mario-fonts", version = "0.5.29" }
+mario-vt = { path = "mario-vt", version = "0.5.29" }
+mario-grid = { path = "mario-grid", version = "0.5.29" }
+mario-unicode = { path = "mario-unicode", version = "0.5.29" }
 
 raw-window-handle = { version = "0.6.2", features = ["std"] }
 parking_lot = { version = "0.12.5", features = [
@@ -55,14 +55,10 @@ smallvec = { version = "1.15.2", default-features = false }
 simdutf = "0.7.0"
 base64 = "0.23.0"
 image_rs = { package = "image", version = "0.25.10", default-features = false, features = [
-    "gif",
     "jpeg",
     "ico",
     "png",
-    "pnm",
     "webp",
-    "bmp",
-    "tiff",
 ] }
 regex = "1.12.3"
 onig = { version = "6.5.3", default-features = false }
@@ -88,14 +84,15 @@ url = "2.5.4"
 criterion = { version = "0.6.0", features = ["html_reports"] }
 dashmap = "6.2.1"
 flate2 = "1.1.9"
+miniz_oxide = "0.8"
 
 [profile.release]
-strip = "symbols"           # See split-debuginfo - allows us to drop the size by ~65%
-debug = "full"              # No one needs an undebuggable release binary
-split-debuginfo = "packed"  # generates a separate *.dwp/*.dSYM so the binary can get stripped
-lto = true
-panic = "abort"             # reduces binary size by ~50% in combination with -Zbuild-std-features=panic_immediate_abort
-codegen-units = 1
+opt-level = "s"                 # optimize for binary size
+lto = "fat"                     # fat LTO for cross-crate dead code elimination
+codegen-units = 1               # single codegen unit for maximum optimization
+panic = "abort"                 # strip unwinding tables
+strip = "symbols"               # strip symbol tables
+debug = false
 incremental = false
 
 [profile.libmario]

@@ -306,6 +306,107 @@ pub struct Colors {
     pub hint_background: ColorArray,
 }
 
+#[inline]
+fn comp(hex: &str) -> ColorComposition {
+    (hex_to_color_arr(hex), hex_to_color_wgpu(hex))
+}
+
+impl Colors {
+    pub fn rose_pine_dawn() -> Self {
+        Self {
+            background: comp("#FAF4ED"),
+            foreground: hex_to_color_arr("#575279"),
+            blue: hex_to_color_arr("#907AA9"),
+            green: hex_to_color_arr("#286983"),
+            red: hex_to_color_arr("#B4637A"),
+            yellow: hex_to_color_arr("#EA9D34"),
+            tabs: hex_to_color_arr("#F2E9DE"),
+            tabs_active: hex_to_color_arr("#575279"),
+            cursor: hex_to_color_arr("#575279"),
+            split: hex_to_color_arr("#CECACD"),
+            split_active: hex_to_color_arr("#907AA9"),
+            vi_cursor: hex_to_color_arr("#286983"),
+            black: hex_to_color_arr("#F2E9DE"),
+            cyan: hex_to_color_arr("#56949F"),
+            magenta: hex_to_color_arr("#D7827E"),
+            white: hex_to_color_arr("#575279"),
+            dim_black: None,
+            dim_blue: None,
+            dim_cyan: None,
+            dim_foreground: None,
+            dim_green: None,
+            dim_magenta: None,
+            dim_red: None,
+            dim_white: None,
+            dim_yellow: None,
+            light_black: hex_to_color_arr("#9893A5"),
+            light_blue: hex_to_color_arr("#907AA9"),
+            light_cyan: hex_to_color_arr("#56949F"),
+            light_foreground: None,
+            light_green: hex_to_color_arr("#286983"),
+            light_magenta: hex_to_color_arr("#D7827E"),
+            light_red: hex_to_color_arr("#B4637A"),
+            light_white: hex_to_color_arr("#575279"),
+            light_yellow: hex_to_color_arr("#EA9D34"),
+            selection_background: hex_to_color_arr("#DFDAD9"),
+            selection_foreground: hex_to_color_arr("#575279"),
+            search_match_background: hex_to_color_arr("#56949F"),
+            search_match_foreground: hex_to_color_arr("#FAF4ED"),
+            search_focused_match_background: hex_to_color_arr("#EA9D34"),
+            search_focused_match_foreground: hex_to_color_arr("#FAF4ED"),
+            hint_foreground: hex_to_color_arr("#FAF4ED"),
+            hint_background: hex_to_color_arr("#EA9D34"),
+        }
+    }
+
+    pub fn rose_pine_moon() -> Self {
+        Self {
+            background: comp("#232136"),
+            foreground: hex_to_color_arr("#E0DEF4"),
+            blue: hex_to_color_arr("#C4A7E7"),
+            green: hex_to_color_arr("#3E8FB0"),
+            red: hex_to_color_arr("#EB6F92"),
+            yellow: hex_to_color_arr("#F6C177"),
+            tabs: hex_to_color_arr("#2A273F"),
+            tabs_active: hex_to_color_arr("#E0DEF4"),
+            cursor: hex_to_color_arr("#E0DEF4"),
+            split: hex_to_color_arr("#56526E"),
+            split_active: hex_to_color_arr("#C4A7E7"),
+            vi_cursor: hex_to_color_arr("#3E8FB0"),
+            black: hex_to_color_arr("#393552"),
+            cyan: hex_to_color_arr("#9CCFD8"),
+            magenta: hex_to_color_arr("#EA9A97"),
+            white: hex_to_color_arr("#E0DEF4"),
+            dim_black: None,
+            dim_blue: None,
+            dim_cyan: None,
+            dim_foreground: None,
+            dim_green: None,
+            dim_magenta: None,
+            dim_red: None,
+            dim_white: None,
+            dim_yellow: None,
+            light_black: hex_to_color_arr("#6E6A86"),
+            light_blue: hex_to_color_arr("#C4A7E7"),
+            light_cyan: hex_to_color_arr("#9CCFD8"),
+            light_foreground: None,
+            light_green: hex_to_color_arr("#3E8FB0"),
+            light_magenta: hex_to_color_arr("#EA9A97"),
+            light_red: hex_to_color_arr("#EB6F92"),
+            light_white: hex_to_color_arr("#E0DEF4"),
+            light_yellow: hex_to_color_arr("#F6C177"),
+            selection_background: hex_to_color_arr("#44415A"),
+            selection_foreground: hex_to_color_arr("#E0DEF4"),
+            search_match_background: hex_to_color_arr("#9CCFD8"),
+            search_match_foreground: hex_to_color_arr("#232136"),
+            search_focused_match_background: hex_to_color_arr("#F6C177"),
+            search_focused_match_foreground: hex_to_color_arr("#232136"),
+            hint_foreground: hex_to_color_arr("#232136"),
+            hint_background: hex_to_color_arr("#F6C177"),
+        }
+    }
+}
+
 impl Default for Colors {
     fn default() -> Colors {
         Colors {

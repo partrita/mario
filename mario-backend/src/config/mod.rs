@@ -123,12 +123,12 @@ pub struct Config {
     pub working_dir: Option<String>,
     #[serde(rename = "line-height", default = "default_line_height")]
     pub line_height: f32,
-    #[serde(default = "String::default")]
+    #[serde(default = "default_theme")]
     pub theme: String,
     #[serde(default = "Scroll::default")]
     pub scroll: Scroll,
     #[serde(
-        default = "Option::default",
+        default = "default_adaptive_theme",
         skip_serializing,
         rename = "adaptive-theme"
     )]
@@ -148,7 +148,7 @@ pub struct Config {
     pub option_as_alt: String,
     #[serde(default = "Colors::default", skip_serializing)]
     pub colors: Colors,
-    #[serde(default = "Option::default", skip_serializing)]
+    #[serde(default = "default_adaptive_colors", skip_serializing)]
     pub adaptive_colors: Option<AdaptiveColors>,
     #[serde(default = "Option::default", rename = "force-theme")]
     pub force_theme: Option<AppearanceTheme>,
@@ -371,6 +371,17 @@ impl Config {
             match toml::from_str::<Theme>(&content) {
                 Ok(decoded) => Ok(decoded),
                 Err(err_message) => Err(format!("error parsing: {err_message:?}")),
+            }
+        } else if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+            let normalized = stem.to_lowercase().replace(' ', "-").replace('_', "-");
+            match normalized.as_str() {
+                "rose-pine-dawn" => Ok(Theme {
+                    colors: Colors::rose_pine_dawn(),
+                }),
+                "rose-pine-moon" => Ok(Theme {
+                    colors: Colors::rose_pine_moon(),
+                }),
+                _ => Err(String::from("filepath does not exist")),
             }
         } else {
             Err(String::from("filepath does not exist"))
@@ -661,8 +672,8 @@ impl Default for Config {
         Config {
             cursor: CursorConfig::default(),
             editor: default_editor(),
-            adaptive_theme: None,
-            adaptive_colors: None,
+            adaptive_theme: default_adaptive_theme(),
+            adaptive_colors: default_adaptive_colors(),
             force_theme: None,
             bindings: Bindings::default(),
             colors: Colors::default(),
@@ -681,7 +692,7 @@ impl Default for Config {
             renderer: Renderer::default(),
             shell: default_shell(),
             platform: Platform::default(),
-            theme: String::default(),
+            theme: default_theme(),
             use_fork: default_use_fork(),
             shell_integration: true,
             window: Window::default(),

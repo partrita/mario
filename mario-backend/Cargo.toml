@@ -5,8 +5,8 @@ authors.workspace = true
 edition.workspace = true
 license.workspace = true
 keywords.workspace = true
-repository = "https://github.com/raphamorim/mario"
-documentation = "https://github.com/raphamorim/mario#readme"
+repository = "https://github.com/partrita/mario"
+documentation = "https://github.com/partrita/mario#readme"
 description = "Backend infrastructure for Mario terminal"
 
 [lib]

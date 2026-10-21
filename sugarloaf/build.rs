@@ -51,7 +51,31 @@ const SHADER_DIRS: &[&str] = &[
     "src/grid/shaders",
 ];
 
+fn compress_fonts() {
+    let out_dir =
+        PathBuf::from(std::env::var_os("OUT_DIR").expect("OUT_DIR must be set by cargo"));
+
+    for (src, name) in [
+        (
+            "src/font/resources/CascadiaCode/CascadiaCodeNF.ttf",
+            "CascadiaCodeNF.ttf.deflate",
+        ),
+        (
+            "src/font/resources/CascadiaCode/CascadiaCodeNFItalic.ttf",
+            "CascadiaCodeNFItalic.ttf.deflate",
+        ),
+    ] {
+        println!("cargo:rerun-if-changed={src}");
+        let raw = std::fs::read(src).unwrap_or_else(|e| panic!("failed to read {src}: {e}"));
+        let compressed = miniz_oxide::deflate::compress_to_vec(&raw, 10);
+        std::fs::write(out_dir.join(name), compressed)
+            .unwrap_or_else(|e| panic!("failed to write {name}: {e}"));
+    }
+}
+
 fn main() {
+    compress_fonts();
+
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     if target_os != "linux" {
         // Vulkan backend is Linux-only; nothing to compile. We still

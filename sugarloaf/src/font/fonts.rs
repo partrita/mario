@@ -103,6 +103,10 @@ impl SugarloafFont {
     pub fn is_default_family(&self) -> bool {
         let current = self.family.replace(' ', "").trim().to_lowercase();
         current == default_font_family()
+            || current == "jbd2nf"
+            || current == "jbd2"
+            || current == "cascadiacode"
+            || current == "cascadia"
     }
 }
 

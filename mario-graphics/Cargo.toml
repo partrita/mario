@@ -5,7 +5,7 @@ authors.workspace = true
 edition.workspace = true
 license.workspace = true
 keywords.workspace = true
-repository = "https://github.com/raphamorim/mario"
+repository = "https://github.com/partrita/mario"
 description = "Terminal graphics value types (sixel/kitty/iTerm2 image data, glyph protocol) extracted from Mario"
 
 [dependencies]

@@ -98,7 +98,23 @@ pub fn default_cursor() -> CursorShape {
 
 #[inline]
 pub fn default_theme() -> String {
-    String::from("")
+    String::default()
+}
+
+#[inline]
+pub fn default_adaptive_theme() -> Option<crate::config::theme::AdaptiveTheme> {
+    Some(crate::config::theme::AdaptiveTheme {
+        dark: String::from("rose-pine-moon"),
+        light: String::from("rose-pine-dawn"),
+    })
+}
+
+#[inline]
+pub fn default_adaptive_colors() -> Option<crate::config::theme::AdaptiveColors> {
+    Some(crate::config::theme::AdaptiveColors {
+        dark: Some(crate::config::colors::Colors::rose_pine_moon()),
+        light: Some(crate::config::colors::Colors::rose_pine_dawn()),
+    })
 }
 
 #[inline]

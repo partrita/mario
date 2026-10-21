@@ -18,7 +18,7 @@ use crate::renderer::image_cache::atlas::AtlasAllocator;
 
 const FRAMES_IN_FLIGHT: usize = 3;
 const CURSOR_ROW_SLOTS: usize = 2;
-const ATLAS_SIZE: u32 = 2048;
+const ATLAS_SIZE: u32 = 1024;
 
 pub struct WgpuGlyphAtlas {
     texture: wgpu::Texture,

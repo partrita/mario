@@ -5,13 +5,17 @@ authors.workspace = true
 edition.workspace = true
 license.workspace = true
 keywords.workspace = true
-repository = "https://github.com/raphamorim/mario"
-description = "Font assets and glyph placement rules shared by Mario's renderers (Nerd Font constraint table, embedded symbols fallback)"
+repository = "https://github.com/partrita/mario"
+description = "Font assets and glyph placement rules shared by Mario's renderers (Nerd Font constraint table, embedded JBD2 Nerd Font fallback)"
 
 [dependencies]
+miniz_oxide = { workspace = true }
+
+[build-dependencies]
+miniz_oxide = { workspace = true }
 
 [features]
 default = []
-# Embed the symbols-only Nerd Font (~1.9 MB) for renderers that want a
-# guaranteed icon-glyph fallback without shipping a font file.
+# Embed the JBD2 Nerd Font (~4.8 MB) for renderers that want a
+# guaranteed icon-glyph and font fallback without shipping an external font file.
 symbols-nerd-font = []

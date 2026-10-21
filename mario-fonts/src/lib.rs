@@ -18,7 +18,26 @@
 
 pub mod nerd_font;
 
-/// Symbols-only Nerd Font as raw TTF bytes.
+use std::sync::LazyLock;
+
+static COMPRESSED_JBD2: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/JBD2NF-Regular.ttf.deflate"));
+
+static DECOMPRESSED_JBD2: LazyLock<&'static [u8]> = LazyLock::new(|| {
+    let decompressed = miniz_oxide::inflate::decompress_to_vec(COMPRESSED_JBD2)
+        .expect("corrupt embedded JBD2 font data");
+    Box::leak(decompressed.into_boxed_slice())
+});
+
+/// Returns the decompressed JBD2 Nerd Font raw TTF bytes.
+#[inline]
+pub fn jbd2_nerd_font() -> &'static [u8] {
+    *DECOMPRESSED_JBD2
+}
+
+/// JBD2 Nerd Font as raw TTF bytes (decompressed on first access).
+pub static JBD2_NERD_FONT: LazyLock<&'static [u8]> = LazyLock::new(jbd2_nerd_font);
+
+/// Default embedded Nerd Font as raw TTF bytes.
 #[cfg(feature = "symbols-nerd-font")]
-pub static SYMBOLS_NERD_FONT: &[u8] =
-    include_bytes!("../resources/SymbolsNerdFontMono/SymbolsNerdFontMono-Regular.ttf");
+pub static SYMBOLS_NERD_FONT: LazyLock<&'static [u8]> = LazyLock::new(jbd2_nerd_font);

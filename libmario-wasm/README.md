@@ -2,7 +2,7 @@
 
 [`libmario`](../libmario) without its `pty` feature, compiled to
 wasm32-unknown-unknown and exposed through wasm-bindgen. This is the JS
-ABI behind the [`marioterm`](https://github.com/raphamorim/mariotermjs) npm
+ABI behind the [`marioterm`](https://github.com/partrita/mariotermjs) npm
 package, the same way `libmario`'s C ABI backs the Swift/C embedders.
 
 There is no PTY in a browser, so the host owns the transport: child

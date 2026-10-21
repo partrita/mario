@@ -1,6 +1,6 @@
 # libmario
 
-Embeddable terminal core extracted from [Mario](https://github.com/raphamorim/mario):
+Embeddable terminal core extracted from [Mario](https://github.com/partrita/mario):
 PTY spawning, VT parsing, terminal state, and a host-pulled render-state API
 with per-row dirty tracking. No drawing or windowing code — bring your own
 renderer.

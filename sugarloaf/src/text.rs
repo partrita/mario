@@ -1252,7 +1252,9 @@ fn rasterize_swash_glyph(
     let embolden_amount = if synthetic_bold {
         (size_px / 14.0).max(1.0)
     } else {
-        0.0
+        // Subtle stem darkening (scaled to font size) so fonts render with rich,
+        // crisp contrast across Windows and Linux, matching macOS CoreText and DirectWrite quality.
+        (size_px * 0.012).min(0.2)
     };
     let rendered = Render::new(sources)
         .format(Format::Alpha)

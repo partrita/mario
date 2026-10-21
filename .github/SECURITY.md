@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please report security issues privately, through
-[**Report a vulnerability**](https://github.com/raphamorim/mario/security/advisories/new)
+[**Report a vulnerability**](https://github.com/partrita/mario/security/advisories/new)
 on the repository's Security tab. It opens a draft advisory that only you and
 the maintainers can read.
 

@@ -4696,7 +4696,7 @@ impl Screen<'_> {
         }
 
         // In case the configuration of blinking cursor is enabled
-        // TODO: enable blinking for selection after adding debounce (https://github.com/raphamorim/mario/issues/437)
+        // TODO: enable blinking for selection after adding debounce (https://github.com/partrita/mario/issues/437)
         if self.renderer.is_window_focused
             && self.renderer.config_has_blinking_enabled
             && self.selection_is_empty()
