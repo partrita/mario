@@ -25,19 +25,19 @@ jobs:
             artifact_name: mario-x86_64-unknown-linux-gnu.tar.gz
             binary: target/x86_64-unknown-linux-gnu/release/mario
 
-          # Linux aarch64
-          - os: ubuntu-22.04
+          # Linux aarch64 (native GitHub ARM runner)
+          - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
             artifact_name: mario-aarch64-unknown-linux-gnu.tar.gz
             binary: target/aarch64-unknown-linux-gnu/release/mario
-            use_cross: true
 
-          # macOS Universal / Apple Silicon & Intel
+          # macOS Apple Silicon
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: mario-aarch64-apple-darwin.tar.gz
             binary: target/aarch64-apple-darwin/release/mario
 
+          # macOS Intel
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact_name: mario-x86_64-apple-darwin.tar.gz
@@ -57,25 +57,21 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwayland-dev pkg-config libfontconfig1-dev libx11-dev libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev
+          sudo apt-get install -y libwayland-dev pkg-config libfontconfig1-dev libx11-dev libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev glslang-tools
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cross (for Linux ARM64 cross-compilation)
-        if: matrix.use_cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
+      - name: Ensure target installed via rustup (macOS & Windows)
+        if: runner.os == 'macOS' || runner.os == 'Windows'
+        run: rustup target add ${{ matrix.target }}
 
       - name: Build binary
         shell: bash
         run: |
-          if [ "${{ matrix.use_cross }}" = "true" ]; then
-            cross build --release --target ${{ matrix.target }} -p marioterm
-          else
-            cargo build --release --target ${{ matrix.target }} -p marioterm
-          fi
+          cargo build --release --target ${{ matrix.target }} -p marioterm
 
       - name: Package artifacts (Unix)
         if: runner.os != 'Windows'
