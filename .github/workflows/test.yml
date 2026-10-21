@@ -71,7 +71,7 @@ jobs:
       - name: cargo test (parallel, with timings)
         # --timings records per-crate duration so we can spot slow tests;
         # libtest already runs tests on all logical CPUs by default.
-        run: cargo test --features wgpu --timings ${{ runner.os == 'Linux' && '' || '--no-default-features' }}
+        run: cargo test --features wgpu --timings
 
       - name: Upload build timings
         # One HTML per run showing which crates dominated and whether the
