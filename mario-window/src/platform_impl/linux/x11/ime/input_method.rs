@@ -56,6 +56,7 @@ impl InputMethod {
                 std::ptr::null_mut::<()>(),
             )
             .is_null()
+                || styles.is_null()
             {
                 return None;
             }
