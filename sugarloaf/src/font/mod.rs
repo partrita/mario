@@ -2523,7 +2523,7 @@ mod alias_tests {
 
         let mut data = FontLibraryData::default();
         data.insert(
-            FontData::from_static_slice(constants::FONT_CASCADIA_CODE_NF)
+            FontData::from_static_slice(constants::font_cascadia_code_nf())
                 .expect("load regular"),
         );
         data.insert(
