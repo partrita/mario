@@ -1708,17 +1708,25 @@ mod color_tests {
     // would race the default assertions under the parallel test runner.
     #[test]
     fn named_fills_rgb_and_follows_set_colors() {
-        // Mario's default red (#FF1261), not xterm's (205, 0, 0).
+        // Defaults come from the active theme (Rosé Pine Dawn), not
+        // xterm's (205, 0, 0) or the old Rio palette.
+        let defaults = mario_vt::config::Colors::default();
         let c = color_to_c(AnsiColor::Named(NamedColor::Red));
         assert_eq!(c.kind, RIO_COLOR_NAMED);
-        assert_eq!((c.r, c.g, c.b), (0xff, 0x12, 0x61));
+        assert_eq!((c.r, c.g, c.b), named_rgb(&defaults, NamedColor::Red));
+        assert_eq!((c.r, c.g, c.b), (0xb4, 0x63, 0x7a));
 
         let bg = color_to_c(AnsiColor::Named(NamedColor::Background));
-        assert_eq!((bg.r, bg.g, bg.b), (0x0f, 0x0d, 0x0e));
+        assert_eq!(
+            (bg.r, bg.g, bg.b),
+            named_rgb(&defaults, NamedColor::Background)
+        );
 
-        // Mario's signature pink cursor.
         let cur = color_to_c(AnsiColor::Named(NamedColor::Cursor));
-        assert_eq!((cur.r, cur.g, cur.b), (0xf7, 0x12, 0xff));
+        assert_eq!(
+            (cur.r, cur.g, cur.b),
+            named_rgb(&defaults, NamedColor::Cursor)
+        );
 
         // Swap in a scheme and every resolution path follows it.
         let mut scheme = mario_colors_s {
@@ -1759,7 +1767,7 @@ mod color_tests {
         // NULL restores the default theme.
         unsafe { mario_set_colors(std::ptr::null()) };
         let c = color_to_c(AnsiColor::Named(NamedColor::Red));
-        assert_eq!((c.r, c.g, c.b), (0xff, 0x12, 0x61));
+        assert_eq!((c.r, c.g, c.b), named_rgb(&defaults, NamedColor::Red));
     }
 
     #[test]
