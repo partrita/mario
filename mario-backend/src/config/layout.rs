@@ -61,12 +61,23 @@ fn default_border_radius() -> f32 {
 }
 
 // CSS-like margin structure
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Margin {
     pub top: f32,
     pub right: f32,
     pub bottom: f32,
     pub left: f32,
+}
+
+// The config format is a CSS-like list (`[1]`, `[1, 2]` or `[1, 2, 3, 4]`),
+// so the default config writer must emit that shape to round-trip.
+impl Serialize for Margin {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        [self.top, self.right, self.bottom, self.left].serialize(serializer)
+    }
 }
 
 impl Margin {

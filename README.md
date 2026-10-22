@@ -46,6 +46,13 @@ Mario was created to provide an independently maintained, finely tuned terminal 
   - **Size-Optimized Release Profile**: Configured `opt-level = "s"`, fat LTO (`lto = "fat"`), `codegen-units = 1`, `panic = "abort"`, and `strip = "symbols"` for minimal executable size and maximum dead-code elimination.
 - **Project Rebranding**: Workspace-wide crate renaming (`rio-*` to `mario-*`), updated repository endpoints (`partrita/mario`), and regenerated high-resolution icon assets (`.ico` and `.svg`).
 
+## What's New in 0.5.30
+
+- **Row-level glyph uploads**: The Metal and Vulkan grid backends now keep a fixed vertex-buffer slot per row and upload only rows written since the last frame. Typing and scrolling no longer re-copy the whole grid to the GPU on every change.
+- **Smarter damage tracking**: Search mode only rescans and requests `Full` damage when the query, viewport, or terminal content actually changes; game mode still renders every frame but no longer rebuilds every row. The visible-row snapshot also reuses row allocations instead of deep-cloning them.
+- **Cheaper text shaping**: The shaped-run cache now hands out an `Rc` instead of cloning the glyph vector on every cache hit, removing per-frame heap allocations for tab titles, overlays, and tooltips.
+- **First-run configuration**: The first launch writes a fully commented `config.toml` plus editable `themes/rose-pine-dawn.toml` and `themes/rose-pine-moon.toml` under the config directory. Existing files are never overwritten.
+
 ## Supporting the Project
 
 If you use and like Mario, please consider sponsoring it: your support helps to cover the fees required to maintain the project and to validate the time spent working on it!

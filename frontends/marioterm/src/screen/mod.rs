@@ -69,6 +69,12 @@ pub struct Screen<'screen> {
     pub mouse: Mouse,
     pub touchpurpose: TouchPurpose,
     pub search_state: SearchState,
+    /// Last search-match scan result: `(regex, display offset, matches)`.
+    /// Search highlights only change when the query, viewport, or terminal
+    /// content changes, so blink/overlay frames reuse this instead of
+    /// rescanning the grid and forcing `Full` damage every frame.
+    search_hint_cache:
+        Option<(String, usize, Vec<mario_backend::crosswords::search::Match>)>,
     pub hint_state: HintState,
     pub renderer: Renderer,
     pub sugarloaf: Sugarloaf<'screen>,
@@ -328,6 +334,7 @@ impl Screen<'_> {
 
         Ok(Screen {
             search_state: SearchState::default(),
+            search_hint_cache: None,
             hint_state: HintState::new(config.hints.alphabet.clone()),
             hints_config: config
                 .hints
@@ -3898,27 +3905,68 @@ impl Screen<'_> {
         }
 
         if is_search_active {
-            // Update search hints in renderable content
+            // Search highlights only need a rescan when the query, viewport,
+            // or terminal content changed. Blink/overlay-only frames reuse
+            // the previous result and skip the `Full` damage that used to
+            // rebuild every row on every frame.
+            let frame_damage = self
+                .context_manager
+                .current()
+                .renderable_content
+                .frame_damage;
+            let query = self.search_state.regex().cloned().unwrap_or_default();
+
             let terminal = self.context_manager.current().terminal.lock();
-            let hints = self
-                .search_state
-                .dfas_mut()
-                .map(|dfas| HintMatches::visible_regex_matches(&terminal, dfas));
+            let display_offset = terminal.display_offset();
+            // PTY output that landed after the last snapshot is visible
+            // via the damage event even before `Renderer::run` consumes it.
+            let content_may_have_changed = !matches!(
+                frame_damage,
+                mario_backend::event::TerminalDamage::Noop
+                    | mario_backend::event::TerminalDamage::CursorOnly
+            ) || terminal.peek_damage_event().is_some();
+
+            let cached = self.search_hint_cache.as_ref().filter(
+                |(cached_query, cached_offset, _)| {
+                    !content_may_have_changed
+                        && *cached_query == query
+                        && *cached_offset == display_offset
+                },
+            );
+
+            let (hint_matches, changed) = match cached {
+                Some((_, _, matches)) => (Some(matches.clone()), false),
+                None => {
+                    let hints = self
+                        .search_state
+                        .dfas_mut()
+                        .map(|dfas| HintMatches::visible_regex_matches(&terminal, dfas));
+                    let matches: Option<Vec<_>> =
+                        hints.map(|h| h.iter().cloned().collect());
+                    let changed = self
+                        .search_hint_cache
+                        .as_ref()
+                        .map(|(_, _, old)| Some(old) != matches.as_ref())
+                        .unwrap_or(true);
+                    self.search_hint_cache = matches
+                        .as_ref()
+                        .map(|m| (query.clone(), display_offset, m.clone()));
+                    (matches, changed)
+                }
+            };
             drop(terminal);
 
-            self.context_manager
-                .current_mut()
-                .renderable_content
-                .hint_matches = hints.map(|h| h.iter().cloned().collect());
+            let current = self.context_manager.current_mut();
+            current.renderable_content.hint_matches = hint_matches;
 
-            // Force invalidation for search with full damage
-            {
-                let current = self.context_manager.current_mut();
+            if changed {
                 current
                     .renderable_content
                     .pending_update
                     .set_terminal_damage(mario_backend::event::TerminalDamage::Full);
             }
+        } else {
+            self.search_hint_cache = None;
         }
 
         let (window_update, any_panel_dirty) = self

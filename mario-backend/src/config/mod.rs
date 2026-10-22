@@ -296,6 +296,45 @@ pub fn create_config_file(path: Option<PathBuf>) {
     }
 }
 
+/// Writes the built-in Rosé Pine themes under `themes/`, next to the config
+/// file, so they can be customized. Existing files are left untouched.
+pub fn create_theme_files() {
+    let themes_dir = config_dir_path().join("themes");
+    if let Err(err) = std::fs::create_dir_all(&themes_dir) {
+        tracing::error!(
+            "could not create themes directory {}: {err}",
+            themes_dir.display()
+        );
+        return;
+    }
+
+    for (name, colors) in [
+        ("rose-pine-dawn", Colors::rose_pine_dawn()),
+        ("rose-pine-moon", Colors::rose_pine_moon()),
+    ] {
+        let path = themes_dir.join(name).with_extension("toml");
+        if path.exists() {
+            continue;
+        }
+
+        match toml::to_string_pretty(&Theme { colors }) {
+            Ok(content) => {
+                let content = format!(
+                    "# {name} theme. Edit these colors, then restart or use the theme command.\n\n{content}"
+                );
+                match std::fs::write(&path, content) {
+                    Ok(_) => tracing::info!("theme file created {}", path.display()),
+                    Err(err) => tracing::error!(
+                        "could not create theme file {}: {err}",
+                        path.display()
+                    ),
+                }
+            }
+            Err(err) => tracing::error!("could not serialize theme {name}: {err}"),
+        }
+    }
+}
+
 impl Config {
     #[cfg(test)]
     fn load_from_path(path: &PathBuf) -> Self {
@@ -807,6 +846,15 @@ mod tests {
         // Developer
         assert_eq!(result.developer, Developer::default());
         assert_eq!(result.bindings, Bindings::default());
+    }
+
+    #[test]
+    fn test_theme_files_roundtrip() {
+        for colors in [Colors::rose_pine_dawn(), Colors::rose_pine_moon()] {
+            let content = toml::to_string_pretty(&Theme { colors }).unwrap();
+            let decoded: Theme = toml::from_str(&content).unwrap();
+            assert_eq!(decoded.colors, colors);
+        }
     }
 
     #[test]

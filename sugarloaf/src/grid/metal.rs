@@ -317,10 +317,20 @@ pub struct MetalGridRenderer {
     fg_rows: Vec<Vec<CellText>>,
 
     /// One per-instance `CellText` vertex buffer per in-flight frame
-    /// slot. Re-uploaded from `fg_rows` on the slot's first frame
-    /// after a write.
+    /// slot. Rows are written at fixed offsets as they change; a slot
+    /// only uploads the rows dirtied since its last frame.
     fg_buffers: [Buffer; FRAMES_IN_FLIGHT],
     fg_capacity: [usize; FRAMES_IN_FLIGHT],
+
+    /// Fixed region of the packed fg vertex buffer that belongs to one row.
+    fg_row_spans: Vec<RowSpan>,
+    /// Next free cell index in the packed fg layout.
+    fg_used: usize,
+
+    /// Per-slot dirty row lists, deduped with `fg_dirty_stamp`.
+    fg_dirty_rows: [Vec<u32>; FRAMES_IN_FLIGHT],
+    fg_dirty_stamp: [Vec<u64>; FRAMES_IN_FLIGHT],
+    fg_dirty_seq: [u64; FRAMES_IN_FLIGHT],
 
     /// Compiled bg render pipeline. Binds:
     /// buffer(0): `GridUniforms` (via `set_vertex_bytes` /
@@ -334,18 +344,6 @@ pub struct MetalGridRenderer {
     /// texture(0): `atlas_grayscale`
     /// texture(1): `atlas_color`
     text_pipeline: RenderPipelineState,
-
-    /// Staging buffer for the concatenated fg instances. Rebuilt each
-    /// frame by flattening `fg_rows` into a contiguous slice.
-    fg_staging: Vec<CellText>,
-
-    /// Per-slot live instance count from the most recent flush.
-    fg_live_count: [u32; FRAMES_IN_FLIGHT],
-
-    /// Per-slot dirty flag for the fg path. Any row-level write sets
-    /// all flags; the slot's flag is cleared by `render_text` after a
-    /// successful flush.
-    fg_dirty: [bool; FRAMES_IN_FLIGHT],
 
     /// Grayscale (R8) glyph atlas — outline mask bitmaps from the
     /// monochrome rasterizer path.
@@ -370,6 +368,13 @@ pub struct MetalGridRenderer {
 }
 
 const CURSOR_SLOT_CAPACITY: usize = 2;
+
+/// Fixed region of the packed fg vertex buffer that belongs to one row.
+#[derive(Clone, Copy, Default)]
+struct RowSpan {
+    offset: u32,
+    capacity: u32,
+}
 
 impl MetalGridRenderer {
     pub fn new(ctx: &MetalContext, cols: u32, rows: u32) -> Self {
@@ -401,11 +406,15 @@ impl MetalGridRenderer {
             fg_rows: init_fg_rows(rows),
             fg_buffers,
             fg_capacity,
+            fg_row_spans: vec![RowSpan::default(); rows as usize + CURSOR_ROW_SLOTS],
+            fg_used: 0,
+            fg_dirty_rows: std::array::from_fn(|_| Vec::new()),
+            fg_dirty_stamp: std::array::from_fn(|_| {
+                vec![0; rows as usize + CURSOR_ROW_SLOTS]
+            }),
+            fg_dirty_seq: [1; FRAMES_IN_FLIGHT],
             bg_pipeline,
             text_pipeline,
-            fg_staging: Vec::new(),
-            fg_live_count: [0; FRAMES_IN_FLIGHT],
-            fg_dirty: [true; FRAMES_IN_FLIGHT],
             atlas_grayscale,
             atlas_color: None,
             needs_full_rebuild: true,
@@ -443,7 +452,7 @@ impl MetalGridRenderer {
             atlas.clear();
         }
         self.needs_full_rebuild = true;
-        self.fg_dirty = [true; FRAMES_IN_FLIGHT];
+        self.mark_all_fg_rows_dirty();
         self.bg_dirty = [true; FRAMES_IN_FLIGHT];
     }
 
@@ -470,7 +479,7 @@ impl MetalGridRenderer {
             }
             self.atlas_grayscale.clear();
             self.needs_full_rebuild = true;
-            self.fg_dirty = [true; FRAMES_IN_FLIGHT];
+            self.mark_all_fg_rows_dirty();
             cleared = true;
         }
     }
@@ -492,21 +501,26 @@ impl MetalGridRenderer {
         }
         let atlas = self.atlas_color.as_mut().unwrap();
         let mut cleared = false;
+        let mut result = None;
         loop {
             if let Some(slot) = atlas.insert(key, glyph) {
-                return Some(slot);
+                result = Some(slot);
+                break;
             }
             if atlas.grow(&self.device, &self.command_queue) {
                 continue;
             }
             if cleared {
-                return None;
+                break;
             }
             atlas.clear();
             self.needs_full_rebuild = true;
-            self.fg_dirty = [true; FRAMES_IN_FLIGHT];
             cleared = true;
         }
+        if cleared {
+            self.mark_all_fg_rows_dirty();
+        }
+        result
     }
 
     pub fn resize(&mut self, cols: u32, rows: u32) {
@@ -523,6 +537,10 @@ impl MetalGridRenderer {
         self.fg_buffers =
             std::array::from_fn(|_| alloc_fg_buffer(&self.device, initial_fg_capacity));
         self.fg_capacity = [initial_fg_capacity; FRAMES_IN_FLIGHT];
+        let row_slots = self.fg_rows.len();
+        self.fg_row_spans = vec![RowSpan::default(); row_slots];
+        self.fg_used = 0;
+        self.fg_dirty_stamp = std::array::from_fn(|_| vec![0; row_slots]);
         self.cursor_dirty = [true; FRAMES_IN_FLIGHT];
         self.cursor_live = [(0, 0); FRAMES_IN_FLIGHT];
         // Fresh buffers = zero contents; emission path must rewrite
@@ -531,19 +549,50 @@ impl MetalGridRenderer {
         // when it next becomes the active frame.
         self.needs_full_rebuild = true;
         self.bg_dirty = [true; FRAMES_IN_FLIGHT];
-        self.fg_dirty = [true; FRAMES_IN_FLIGHT];
-        self.fg_live_count = [0; FRAMES_IN_FLIGHT];
+        self.mark_all_fg_rows_dirty();
+    }
+
+    #[inline]
+    fn mark_fg_row_dirty(&mut self, idx: usize) {
+        for slot in 0..FRAMES_IN_FLIGHT {
+            let seq = self.fg_dirty_seq[slot];
+            if self.fg_dirty_stamp[slot].get(idx).copied() == Some(seq) {
+                continue;
+            }
+            if let Some(stamp) = self.fg_dirty_stamp[slot].get_mut(idx) {
+                *stamp = seq;
+            }
+            self.fg_dirty_rows[slot].push(idx as u32);
+        }
+    }
+
+    fn mark_all_fg_rows_dirty(&mut self) {
+        for slot in 0..FRAMES_IN_FLIGHT {
+            self.fg_dirty_seq[slot] = self.fg_dirty_seq[slot].wrapping_add(1);
+            let seq = self.fg_dirty_seq[slot];
+            self.fg_dirty_rows[slot].clear();
+            for idx in 0..self.fg_rows.len() {
+                self.fg_dirty_stamp[slot][idx] = seq;
+                self.fg_dirty_rows[slot].push(idx as u32);
+            }
+        }
     }
 
     pub fn write_row(&mut self, row: u32, bg: &[CellBg], fg: &[CellText]) {
-        // FG: stash in the CPU-side per-row vec. All in-flight slots
-        // need re-flushing — set every dirty flag so each slot
-        // re-uploads when it becomes the active frame.
         let idx = (row as usize) + 1;
         if let Some(slot) = self.fg_rows.get_mut(idx) {
             slot.clear();
             slot.extend_from_slice(fg);
-            self.fg_dirty = [true; FRAMES_IN_FLIGHT];
+            let needed = slot.len() as u32;
+            if needed > self.fg_row_spans[idx].capacity {
+                let capacity = needed.max(32).next_power_of_two();
+                self.fg_row_spans[idx] = RowSpan {
+                    offset: self.fg_used as u32,
+                    capacity,
+                };
+                self.fg_used += capacity as usize;
+            }
+            self.mark_fg_row_dirty(idx);
         }
 
         if row >= self.rows {
@@ -563,9 +612,9 @@ impl MetalGridRenderer {
         let idx = (row as usize) + 1;
         if let Some(slot) = self.fg_rows.get_mut(idx) {
             if !slot.is_empty() {
-                self.fg_dirty = [true; FRAMES_IN_FLIGHT];
+                slot.clear();
             }
-            slot.clear();
+            self.mark_fg_row_dirty(idx);
         }
         if row >= self.rows {
             return;
@@ -649,42 +698,44 @@ impl MetalGridRenderer {
         encoder.draw_primitives(MTLPrimitiveType::Triangle, 0, 3);
     }
 
-    /// Record the cell-text pass. One instanced quad per `CellText`
-    /// in `fg_rows`. Lazily flushes the per-row CPU vecs into
-    /// `fg_buffers[frame]` only when the slot is dirty — on a
-    /// Noop/CursorOnly damage frame (blink tick, scrollbar fade,
-    /// etc.) this is the whole difference between ~0 µs and ~(rows ×
-    /// cols × 32 B) of wasted CPU work per frame.
+    /// Record the cell-text pass. One instanced quad per `CellText`.
+    /// Only rows dirtied since this slot last ran are copied, each at
+    /// its fixed offset in the packed vertex buffer.
     pub fn render_text(
         &mut self,
         encoder: &RenderCommandEncoderRef,
         frame: usize,
         uniforms: &GridUniforms,
     ) {
-        if self.fg_dirty[frame] {
-            self.fg_staging.clear();
-            let content_end = self.fg_rows.len().saturating_sub(1);
-            for row in &self.fg_rows[1..content_end] {
-                self.fg_staging.extend_from_slice(row);
-            }
-
-            if self.fg_staging.len() > self.fg_capacity[frame] {
-                let new_cap = self.fg_staging.len().next_power_of_two();
-                self.fg_buffers[frame] = alloc_fg_buffer(&self.device, new_cap);
-                self.fg_capacity[frame] = new_cap;
-            }
-
-            // Upload staging → GPU buffer. Shared storage mode means the
-            // CPU pointer is the GPU pointer.
-            let fg_bytes = bytemuck::cast_slice::<CellText, u8>(&self.fg_staging);
-            unsafe {
-                let dst = self.fg_buffers[frame].contents() as *mut u8;
-                std::ptr::copy_nonoverlapping(fg_bytes.as_ptr(), dst, fg_bytes.len());
-            }
-
-            self.fg_live_count[frame] = self.fg_staging.len() as u32;
-            self.fg_dirty[frame] = false;
+        if self.fg_used > self.fg_capacity[frame] {
+            let new_cap = self.fg_used.max(64).next_power_of_two();
+            self.fg_buffers[frame] = alloc_fg_buffer(&self.device, new_cap);
+            self.fg_capacity[frame] = new_cap;
+            self.mark_all_fg_rows_dirty();
         }
+
+        let dirty = std::mem::take(&mut self.fg_dirty_rows[frame]);
+        if !dirty.is_empty() {
+            let dst = self.fg_buffers[frame].contents() as *mut CellText;
+            for idx in &dirty {
+                let idx = *idx as usize;
+                let span = self.fg_row_spans[idx];
+                let row = &self.fg_rows[idx];
+                if row.is_empty() || row.len() as u32 > span.capacity {
+                    continue;
+                }
+                unsafe {
+                    std::ptr::copy_nonoverlapping(
+                        row.as_ptr(),
+                        dst.add(span.offset as usize),
+                        row.len(),
+                    );
+                }
+            }
+            self.fg_dirty_seq[frame] = self.fg_dirty_seq[frame].wrapping_add(1);
+        }
+        self.fg_dirty_rows[frame] = dirty;
+        self.fg_dirty_rows[frame].clear();
 
         if self.cursor_dirty[frame] {
             let block = self
@@ -712,9 +763,10 @@ impl MetalGridRenderer {
             self.cursor_dirty[frame] = false;
         }
 
-        let instance_count = self.fg_live_count[frame] as usize;
+        let content_end = self.fg_rows.len().saturating_sub(1);
+        let content_empty = self.fg_rows[1..content_end].iter().all(|r| r.is_empty());
         let (block_count, tail_count) = self.cursor_live[frame];
-        if instance_count == 0 && block_count == 0 && tail_count == 0 {
+        if content_empty && block_count == 0 && tail_count == 0 {
             return;
         }
 
@@ -742,14 +794,22 @@ impl MetalGridRenderer {
                 block_count as u64,
             );
         }
-        if instance_count > 0 {
-            encoder.set_vertex_buffer(0, Some(&self.fg_buffers[frame]), 0);
-            encoder.draw_primitives_instanced(
-                MTLPrimitiveType::TriangleStrip,
-                0,
-                4,
-                instance_count as u64,
-            );
+        if !content_empty {
+            let stride = std::mem::size_of::<CellText>() as u64;
+            for idx in 1..content_end {
+                let row = &self.fg_rows[idx];
+                if row.is_empty() {
+                    continue;
+                }
+                let offset = self.fg_row_spans[idx].offset as u64 * stride;
+                encoder.set_vertex_buffer(0, Some(&self.fg_buffers[frame]), offset);
+                encoder.draw_primitives_instanced(
+                    MTLPrimitiveType::TriangleStrip,
+                    0,
+                    4,
+                    row.len() as u64,
+                );
+            }
         }
         if tail_count > 0 {
             encoder.set_vertex_buffer(

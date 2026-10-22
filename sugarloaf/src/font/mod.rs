@@ -2312,9 +2312,7 @@ fn find_font(
 /// the embedded JBD2 Nerd Font file (with bold weight set for Slot::Bold);
 /// italic and bold-italic load the italic variable file.
 fn load_fallback_from_memory(slot: Slot) -> FontData {
-    use constants::{
-        font_cascadia_code_nf_italic, font_jbd2_nf, WGHT_BOLD,
-    };
+    use constants::{font_cascadia_code_nf_italic, font_jbd2_nf, WGHT_BOLD};
 
     let (data, wght) = match slot {
         Slot::Regular => (font_jbd2_nf(), None),
@@ -2371,7 +2369,8 @@ mod alias_tests {
             font_has_char(&matched, '\u{0132}'),
             "matched face has U+0132 glyph"
         );
-        let expected = advance_units_for_char(&matched, '\u{0132}').expect("matched advance");
+        let expected =
+            advance_units_for_char(&matched, '\u{0132}').expect("matched advance");
 
         // No file path: the handle alone must serve coverage and advances,
         // like a matched system face without an accessible file URL.
@@ -2665,9 +2664,10 @@ mod postscript_resolver_tests {
     fn insert_populates_postscript_lookup() {
         // Read the PS name straight from the handle so the test doesn't
         // hardcode a value that changes if the bundled font is updated.
-        let handle =
-            crate::font::macos::FontHandle::from_static_bytes(constants::font_cascadia_code_nf())
-                .expect("parse CascadiaMono");
+        let handle = crate::font::macos::FontHandle::from_static_bytes(
+            constants::font_cascadia_code_nf(),
+        )
+        .expect("parse CascadiaMono");
         let ps_name = handle.postscript_name();
 
         let mut lib = FontLibraryData::default();
@@ -2694,14 +2694,21 @@ mod postscript_resolver_tests {
     /// id, so first-wins is the correct policy.
     #[test]
     fn duplicate_insert_keeps_first_id() {
-        let handle =
-            crate::font::macos::FontHandle::from_static_bytes(constants::font_cascadia_code_nf())
-                .expect("parse CascadiaMono");
+        let handle = crate::font::macos::FontHandle::from_static_bytes(
+            constants::font_cascadia_code_nf(),
+        )
+        .expect("parse CascadiaMono");
         let ps_name = handle.postscript_name();
 
         let mut lib = FontLibraryData::default();
-        lib.insert(FontData::from_static_slice(constants::font_cascadia_code_nf()).expect("load a"));
-        lib.insert(FontData::from_static_slice(constants::font_cascadia_code_nf()).expect("load b"));
+        lib.insert(
+            FontData::from_static_slice(constants::font_cascadia_code_nf())
+                .expect("load a"),
+        );
+        lib.insert(
+            FontData::from_static_slice(constants::font_cascadia_code_nf())
+                .expect("load b"),
+        );
         assert_eq!(
             lib.font_id_for_postscript_name(&ps_name),
             Some(0),
@@ -2720,7 +2727,10 @@ mod postscript_resolver_tests {
         use std::sync::Arc;
 
         let mut data = FontLibraryData::default();
-        data.insert(FontData::from_static_slice(constants::font_cascadia_code_nf()).expect("load"));
+        data.insert(
+            FontData::from_static_slice(constants::font_cascadia_code_nf())
+                .expect("load"),
+        );
         let lib = FontLibrary {
             inner: Arc::new(parking_lot::RwLock::new(data)),
         };
@@ -2757,7 +2767,10 @@ mod postscript_resolver_tests {
         use std::sync::Arc;
 
         let mut data = FontLibraryData::default();
-        data.insert(FontData::from_static_slice(constants::font_cascadia_code_nf()).expect("load"));
+        data.insert(
+            FontData::from_static_slice(constants::font_cascadia_code_nf())
+                .expect("load"),
+        );
         let lib = FontLibrary {
             inner: Arc::new(parking_lot::RwLock::new(data)),
         };

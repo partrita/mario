@@ -157,7 +157,7 @@ pub struct Text {
     #[cfg(not(target_os = "macos"))]
     wght_variation_cache: FxHashMap<u32, Option<f32>>,
     ascent_cache: FxHashMap<(u32, u16), i16>,
-    shape_cache: FxHashMap<u64, ShapedRun>,
+    shape_cache: FxHashMap<u64, std::rc::Rc<ShapedRun>>,
 
     #[cfg(target_os = "macos")]
     handle_cache: FxHashMap<u32, crate::font::macos::FontHandle>,
@@ -266,7 +266,11 @@ impl Text {
             .unwrap_or(0.0)
     }
 
-    fn shape_for(&mut self, text: &str, opts: &DrawOpts) -> Option<ShapedRun> {
+    fn shape_for(
+        &mut self,
+        text: &str,
+        opts: &DrawOpts,
+    ) -> Option<std::rc::Rc<ShapedRun>> {
         use crate::{Attributes, SpanStyle, Stretch, Style as FontStyle, Weight};
 
         let scaled = opts.font_size * self.scale_factor;
@@ -437,7 +441,8 @@ impl Text {
             ascent_px,
             glyphs,
         };
-        self.shape_cache.insert(hash, run.clone());
+        let run = std::rc::Rc::new(run);
+        self.shape_cache.insert(hash, std::rc::Rc::clone(&run));
         Some(run)
     }
 

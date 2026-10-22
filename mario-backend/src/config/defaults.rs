@@ -174,8 +174,18 @@ pub fn default_forward_to_ime_modifier_mask() -> Vec<String> {
     ]
 }
 
+/// Header comment plus every default serialized explicitly, so a fresh
+/// config file shows what can be configured instead of being empty.
 pub fn default_config_file_content() -> String {
-    String::from(
-        "# See the full configuration reference: https://marioterm.com/docs/config\n",
-    )
+    let mut content = String::from(
+        "# See the full configuration reference: https://marioterm.com/docs/config\n\n",
+    );
+
+    // `colors`/`adaptive-colors`/`adaptive-theme` are `skip_serializing`;
+    // everything else round-trips back into the defaults above.
+    if let Ok(defaults) = toml::to_string_pretty(&crate::config::Config::default()) {
+        content.push_str(&defaults);
+    }
+
+    content
 }

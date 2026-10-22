@@ -66,7 +66,8 @@ fn compress_fonts() {
         ),
     ] {
         println!("cargo:rerun-if-changed={src}");
-        let raw = std::fs::read(src).unwrap_or_else(|e| panic!("failed to read {src}: {e}"));
+        let raw =
+            std::fs::read(src).unwrap_or_else(|e| panic!("failed to read {src}: {e}"));
         let compressed = miniz_oxide::deflate::compress_to_vec(&raw, 10);
         std::fs::write(out_dir.join(name), compressed)
             .unwrap_or_else(|e| panic!("failed to write {name}: {e}"));

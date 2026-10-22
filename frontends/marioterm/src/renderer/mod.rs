@@ -462,12 +462,13 @@ impl Renderer {
             let panel_rect = grid_context.layout_rect;
             let context = grid_context.context_mut();
 
-            let force_full_damage = has_active_changed || self.is_game_mode_enabled;
+            let force_render = has_active_changed || self.is_game_mode_enabled;
+            let force_full_damage = has_active_changed;
 
             let is_dirty = context.renderable_content.pending_update.is_dirty();
 
             // Check if we need to render
-            if !is_dirty && !force_full_damage {
+            if !is_dirty && !force_render {
                 // No updates pending, skip rendering
                 continue;
             }

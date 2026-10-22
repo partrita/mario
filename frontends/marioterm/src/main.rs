@@ -160,6 +160,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(err) => (mario_backend::config::Config::default(), Some(err)),
     };
 
+    // First launch: materialize the defaults so the user has something to edit.
+    // Both helpers skip files that already exist.
+    mario_backend::config::create_config_file(None);
+    mario_backend::config::create_theme_files();
+
     // Read platform property and overwrite values per OS
     //
     // [shell]

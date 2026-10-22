@@ -306,6 +306,89 @@ pub struct Colors {
     pub hint_background: ColorArray,
 }
 
+fn color_arr_to_hex(arr: ColorArray) -> String {
+    let to_u8 = |channel: f32| (channel * 255.0).round().clamp(0.0, 255.0) as u8;
+    let (r, g, b, a) = (to_u8(arr[0]), to_u8(arr[1]), to_u8(arr[2]), arr[3]);
+    if a >= 1.0 {
+        format!("#{r:02X}{g:02X}{b:02X}")
+    } else {
+        format!("#{r:02X}{g:02X}{b:02X}{:02X}", to_u8(a))
+    }
+}
+
+// Colors only deserialize from hex strings, so serializing back to the same
+// form needs a manual impl (used when writing the default theme files).
+impl Serialize for Colors {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+
+        let mut map = serializer.serialize_map(None)?;
+        macro_rules! color {
+            ($key:literal, $value:expr) => {
+                map.serialize_entry($key, &color_arr_to_hex($value))?
+            };
+        }
+        macro_rules! opt_color {
+            ($key:literal, $value:expr) => {
+                map.serialize_entry($key, &$value.map(color_arr_to_hex))?
+            };
+        }
+
+        color!("background", self.background.0);
+        color!("foreground", self.foreground);
+        color!("blue", self.blue);
+        color!("green", self.green);
+        color!("red", self.red);
+        color!("yellow", self.yellow);
+        color!("tabs", self.tabs);
+        color!("tabs-active", self.tabs_active);
+        color!("cursor", self.cursor);
+        color!("vi-cursor", self.vi_cursor);
+        color!("black", self.black);
+        color!("cyan", self.cyan);
+        color!("magenta", self.magenta);
+        color!("white", self.white);
+        opt_color!("dim-black", self.dim_black);
+        opt_color!("dim-blue", self.dim_blue);
+        opt_color!("dim-cyan", self.dim_cyan);
+        opt_color!("dim-foreground", self.dim_foreground);
+        opt_color!("dim-green", self.dim_green);
+        opt_color!("dim-magenta", self.dim_magenta);
+        opt_color!("dim-red", self.dim_red);
+        opt_color!("dim-white", self.dim_white);
+        opt_color!("dim-yellow", self.dim_yellow);
+        color!("light-black", self.light_black);
+        color!("light-blue", self.light_blue);
+        color!("light-cyan", self.light_cyan);
+        opt_color!("light-foreground", self.light_foreground);
+        color!("light-green", self.light_green);
+        color!("light-magenta", self.light_magenta);
+        color!("light-red", self.light_red);
+        color!("light-white", self.light_white);
+        color!("light-yellow", self.light_yellow);
+        color!("selection-background", self.selection_background);
+        color!("selection-foreground", self.selection_foreground);
+        color!("split", self.split);
+        color!("split-active", self.split_active);
+        color!("search-match-background", self.search_match_background);
+        color!("search-match-foreground", self.search_match_foreground);
+        color!(
+            "search-focused-match-background",
+            self.search_focused_match_background
+        );
+        color!(
+            "search-focused-match-foreground",
+            self.search_focused_match_foreground
+        );
+        color!("hint-foreground", self.hint_foreground);
+        color!("hint-background", self.hint_background);
+        map.end()
+    }
+}
+
 #[inline]
 fn comp(hex: &str) -> ColorComposition {
     (hex_to_color_arr(hex), hex_to_color_wgpu(hex))

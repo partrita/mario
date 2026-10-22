@@ -864,7 +864,7 @@ dependencies = [
 
 [[package]]
 name = "corcovado"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "criterion",
  "libc",
@@ -2334,7 +2334,7 @@ checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "libmario"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "bitflags 2.13.2",
  "corcovado",
@@ -2348,7 +2348,7 @@ dependencies = [
 
 [[package]]
 name = "libmario-wasm"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "js-sys",
  "libmario",
@@ -2525,7 +2525,7 @@ dependencies = [
 
 [[package]]
 name = "libsugarloaf"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "libmario",
  "mario-grid",
@@ -2623,7 +2623,7 @@ dependencies = [
 
 [[package]]
 name = "mario-backend"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "base64",
  "dirs",
@@ -2642,14 +2642,14 @@ dependencies = [
 
 [[package]]
 name = "mario-fonts"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "miniz_oxide 0.8.9",
 ]
 
 [[package]]
 name = "mario-grapheme-width"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "phf",
  "ucd-trie",
@@ -2657,7 +2657,7 @@ dependencies = [
 
 [[package]]
 name = "mario-graphics"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "image",
  "parking_lot",
@@ -2670,7 +2670,7 @@ dependencies = [
 
 [[package]]
 name = "mario-grid"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "mario-backend",
  "mario-unicode",
@@ -2681,7 +2681,7 @@ dependencies = [
 
 [[package]]
 name = "mario-notifier"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "block2 0.5.1",
  "objc-rs 0.3.2",
@@ -2694,7 +2694,7 @@ dependencies = [
 
 [[package]]
 name = "mario-unicode"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "unicode-segmentation",
  "unicode-width-16",
@@ -2702,7 +2702,7 @@ dependencies = [
 
 [[package]]
 name = "mario-vt"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "base64",
  "bitflags 2.13.2",
@@ -2735,7 +2735,7 @@ dependencies = [
 
 [[package]]
 name = "mario-window"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "ahash",
  "atomic-waker",
@@ -2789,7 +2789,7 @@ dependencies = [
 
 [[package]]
 name = "marioterm"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "ahash",
  "base64",
@@ -4589,7 +4589,7 @@ dependencies = [
 
 [[package]]
 name = "sugarloaf"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "approx",
  "ash",
@@ -4723,7 +4723,7 @@ dependencies = [
 
 [[package]]
 name = "teletypewriter"
-version = "0.5.29"
+version = "0.5.30"
 dependencies = [
  "corcovado",
  "dirs",

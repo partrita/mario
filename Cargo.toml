@@ -20,7 +20,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.5.29"
+version = "0.5.30"
 authors = ["Raphael Amorim <rapha850@gmail.com>"]
 edition = "2021"
 license = "MIT"
@@ -32,18 +32,18 @@ documentation = "https://github.com/partrita/mario#readme"
 readme = "README.md"
 
 [workspace.dependencies]
-teletypewriter = { path = "teletypewriter", version = "0.5.29" }
-mario-backend = { path = "mario-backend", version = "0.5.29" }
-mario-window = { path = "mario-window", version = "0.5.29", default-features = false }
-mario-notifier = { path = "mario-notifier", version = "0.5.29" }
-mario-grapheme-width = { path = "mario-grapheme-width", version = "0.5.29" }
-sugarloaf = { path = "sugarloaf", version = "0.5.29" }
-corcovado = { path = "corcovado", version = "0.5.29" }
-mario-graphics = { path = "mario-graphics", version = "0.5.29" }
-mario-fonts = { path = "mario-fonts", version = "0.5.29" }
-mario-vt = { path = "mario-vt", version = "0.5.29" }
-mario-grid = { path = "mario-grid", version = "0.5.29" }
-mario-unicode = { path = "mario-unicode", version = "0.5.29" }
+teletypewriter = { path = "teletypewriter", version = "0.5.30" }
+mario-backend = { path = "mario-backend", version = "0.5.30" }
+mario-window = { path = "mario-window", version = "0.5.30", default-features = false }
+mario-notifier = { path = "mario-notifier", version = "0.5.30" }
+mario-grapheme-width = { path = "mario-grapheme-width", version = "0.5.30" }
+sugarloaf = { path = "sugarloaf", version = "0.5.30" }
+corcovado = { path = "corcovado", version = "0.5.30" }
+mario-graphics = { path = "mario-graphics", version = "0.5.30" }
+mario-fonts = { path = "mario-fonts", version = "0.5.30" }
+mario-vt = { path = "mario-vt", version = "0.5.30" }
+mario-grid = { path = "mario-grid", version = "0.5.30" }
+mario-unicode = { path = "mario-unicode", version = "0.5.30" }
 
 raw-window-handle = { version = "0.6.2", features = ["std"] }
 parking_lot = { version = "0.12.5", features = [

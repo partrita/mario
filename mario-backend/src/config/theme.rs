@@ -15,7 +15,7 @@ pub struct AdaptiveTheme {
     pub light: String,
 }
 
-#[derive(Debug, Default, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Theme {
     #[serde(default = "Colors::default")]
     pub colors: Colors,
