@@ -21,6 +21,12 @@
 
 Documentation: [marioterm.com](https://marioterm.com).
 
+## Download
+
+Mario supports cross-platform environments and is distributed as a single standalone executable.
+
+Prebuilt binaries for Linux, macOS, and Windows are available on the [GitHub Releases](https://github.com/partrita/mario/releases) page.
+
 ## About
 
 Mario is a hardware-accelerated GPU terminal emulator, a fork and rebrand of [Rio](https://github.com/raphamorim/rio) focused on cross-platform reliability (Linux, macOS, Windows, and WebAssembly) with modern typography and refined defaults.
