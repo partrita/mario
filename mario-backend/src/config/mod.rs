@@ -170,6 +170,8 @@ pub struct Config {
     pub grapheme_clustering: bool,
     #[serde(default = "bool::default", rename = "copy-on-select")]
     pub copy_on_select: bool,
+    #[serde(default = "default_bool_true", rename = "safe-paste")]
+    pub safe_paste: bool,
     #[serde(
         default = "bool::default",
         rename = "hide-mouse-cursor-when-typing",
@@ -740,6 +742,7 @@ impl Default for Config {
             confirm_before_quit: true,
             grapheme_clustering: true,
             copy_on_select: false,
+            safe_paste: true,
             hide_cursor_when_typing: false,
             draw_bold_text_with_light_colors: false,
             hints: Hints::default(),
@@ -846,6 +849,8 @@ mod tests {
         // Developer
         assert_eq!(result.developer, Developer::default());
         assert_eq!(result.bindings, Bindings::default());
+        assert!(result.safe_paste);
+        assert!(!result.copy_on_select);
     }
 
     #[test]
