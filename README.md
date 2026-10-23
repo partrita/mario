@@ -9,17 +9,10 @@
     <br />
     <a href="#about">About</a>
     ·
-    <a href="https://marioterm.com/docs/install">Install</a>
+    <a href="https://rioterm.com/docs/config">Config</a>
     ·
-    <a href="https://marioterm.com/docs/config">Config</a>
-    ·
-    <a href="https://marioterm.com/changelog">Changelog</a>
-    ·
-    <a href="https://github.com/sponsors/raphamorim">Sponsor</a>
   </p>
 </p>
-
-Documentation: [marioterm.com](https://marioterm.com).
 
 ## Download
 
@@ -62,30 +55,4 @@ Mario was created to provide an independently maintained, finely tuned terminal 
   - Smart whitespace trimming: Automatically strips trailing padding and empty cells on row copy while preserving wrapped lines.
   - `safe-paste`: Guards against unintended command execution and dangerous escape injections.
 - **First-run configuration**: The first launch writes a fully commented `config.toml` plus editable `themes/rose-pine-dawn.toml` and `themes/rose-pine-moon.toml` under the config directory. Existing files are never overwritten.
-
-## Supporting the Project
-
-If you use and like Mario, please consider sponsoring it: your support helps to cover the fees required to maintain the project and to validate the time spent working on it!
-
-[![Sponsor Mario terminal](https://img.shields.io/github/sponsors/raphamorim?label=Sponsor%20Mario&logo=github&style=for-the-badge)](https://github.com/sponsors/raphamorim)
-
-## Packaging
-
-[![Packaging status](https://repology.org/badge/vertical-allrepos/mario-terminal.svg?columns=3)](https://repology.org/project/mario-terminal/versions)
-
-> Demo with split and CRT on MacOS
-
-![Demo Mario 0.2.0 on MacOS](https://marioterm.com/assets/posts/0.2.0/demo-mario.png)
-
-> Demo with blurred background on Linux
-
-![Demo blurred background](https://marioterm.com/assets/demos/demos-nixos-blur.png)
-
-> Demo of Mario running on a Steam Deck
-
-![Demo of Mario running on a Steam Deck](https://marioterm.com/assets/demos/demo-flatpak-steamdeck.jpg)
-
-## Minimal stable rust version
-
-Mario's MSRV is 1.96.1.
 
