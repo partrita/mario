@@ -57,6 +57,10 @@ Mario was created to provide an independently maintained, finely tuned terminal 
 - **Row-level glyph uploads**: The Metal and Vulkan grid backends now keep a fixed vertex-buffer slot per row and upload only rows written since the last frame. Typing and scrolling no longer re-copy the whole grid to the GPU on every change.
 - **Smarter damage tracking**: Search mode only rescans and requests `Full` damage when the query, viewport, or terminal content actually changes; game mode still renders every frame but no longer rebuilds every row. The visible-row snapshot also reuses row allocations instead of deep-cloning them.
 - **Cheaper text shaping**: The shaped-run cache now hands out an `Rc` instead of cloning the glyph vector on every cache hit, removing per-frame heap allocations for tab titles, overlays, and tooltips.
+- **Enhanced Copy & Paste UX**:
+  - `copy-on-select`: Automatically copies text to the system clipboard upon mouse selection.
+  - Smart whitespace trimming: Automatically strips trailing padding and empty cells on row copy while preserving wrapped lines.
+  - `safe-paste`: Guards against unintended command execution and dangerous escape injections.
 - **First-run configuration**: The first launch writes a fully commented `config.toml` plus editable `themes/rose-pine-dawn.toml` and `themes/rose-pine-moon.toml` under the config directory. Existing files are never overwritten.
 
 ## Supporting the Project
