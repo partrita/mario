@@ -34,6 +34,12 @@ pub struct Renderer {
     /// display delay matters more than throughput.
     #[serde(default = "bool::default", rename = "low-latency")]
     pub low_latency: bool,
+
+    /// Limits the maximum number of frames per second that mario terminal
+    /// will attempt to draw on a specific frame per second interval.
+    /// Disabled by default (`None`).
+    #[serde(default = "Option::default", rename = "target-fps")]
+    pub target_fps: Option<u64>,
 }
 
 fn default_use_cpu() -> bool {
@@ -77,6 +83,7 @@ impl Default for Renderer {
             strategy: RendererStategy::Events,
             use_cpu: default_use_cpu(),
             low_latency: false,
+            target_fps: None,
         }
     }
 }

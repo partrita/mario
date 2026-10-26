@@ -4022,7 +4022,19 @@ impl Screen<'_> {
                     current.route_id,
                 );
 
-                let cursor_color = self.renderer.named_colors.cursor;
+                let raw_cursor_color = self.renderer.named_colors.cursor;
+                let bg_col = self.renderer.named_colors.background.0;
+                let bg_lum = 0.2126 * bg_col[0] + 0.7152 * bg_col[1] + 0.0722 * bg_col[2];
+                let cur_lum = 0.2126 * raw_cursor_color[0]
+                    + 0.7152 * raw_cursor_color[1]
+                    + 0.0722 * raw_cursor_color[2];
+                let cursor_color = if bg_lum > 0.5 && cur_lum > 0.75 {
+                    self.renderer.named_colors.foreground
+                } else if bg_lum <= 0.5 && cur_lum < 0.2 {
+                    self.renderer.named_colors.foreground
+                } else {
+                    raw_cursor_color
+                };
                 self.renderer.trail_cursor.draw(
                     &mut self.sugarloaf,
                     scale_factor,
@@ -4253,9 +4265,24 @@ impl Screen<'_> {
                 // indexed-color List) is not populated for the Cursor
                 // slot — `List::fill_named` skips it — so we read
                 // `named_colors.cursor` directly.
-                let cursor_color = term_colors
+                let raw_cursor_color = term_colors
                     [mario_backend::config::colors::NamedColor::Cursor as usize]
                     .unwrap_or(self.renderer.named_colors.cursor);
+                // Ensure the cursor has strong contrast against the background:
+                // if background is light (e.g. rose-pine-dawn) and cursor is near-white or light,
+                // fall back to the foreground color so the cursor is never invisible.
+                let bg_col = self.renderer.named_colors.background.0;
+                let bg_lum = 0.2126 * bg_col[0] + 0.7152 * bg_col[1] + 0.0722 * bg_col[2];
+                let cur_lum = 0.2126 * raw_cursor_color[0]
+                    + 0.7152 * raw_cursor_color[1]
+                    + 0.0722 * raw_cursor_color[2];
+                let cursor_color = if bg_lum > 0.5 && cur_lum > 0.75 {
+                    self.renderer.named_colors.foreground
+                } else if bg_lum <= 0.5 && cur_lum < 0.2 {
+                    self.renderer.named_colors.foreground
+                } else {
+                    raw_cursor_color
+                };
                 panels.push(PanelFrame {
                     route_id: ctx.route_id,
                     layout_rect: item.layout_rect,

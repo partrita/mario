@@ -126,4 +126,6 @@ pub struct PlatformRenderer {
     pub filters: Option<Vec<sugarloaf::Filter>>,
     #[serde(default = "Option::default")]
     pub strategy: Option<renderer::RendererStategy>,
+    #[serde(default = "Option::default", rename = "target-fps")]
+    pub target_fps: Option<u64>,
 }

@@ -694,6 +694,9 @@ impl Config {
             if let Some(strategy) = &renderer_overwrite.strategy {
                 self.renderer.strategy = strategy.clone();
             }
+            if let Some(target_fps) = renderer_overwrite.target_fps {
+                self.renderer.target_fps = Some(target_fps);
+            }
         }
 
         // Append platform-specific env vars to the global ones
@@ -915,10 +918,12 @@ mod tests {
             r#"
             [renderer]
             disable-occluded-render = false
+            target-fps = 120
         "#,
         );
 
         assert!(!result.renderer.disable_occluded_render);
+        assert_eq!(result.renderer.target_fps, Some(120));
         assert_eq!(result.fonts, SugarloafFonts::default());
         assert_eq!(result.theme, String::default());
         // Colors
