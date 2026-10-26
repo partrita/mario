@@ -1857,11 +1857,19 @@ mod tests {
 
         let deadline = Instant::now() + Duration::from_secs(8);
         let mut found = false;
+        let mut target_row = 0;
         while Instant::now() < deadline {
             state.update();
             let lines = state.lines();
-            if (0..lines).any(|i| state.text_row(i).contains("libmario-gate")) {
-                found = true;
+            for i in 0..lines {
+                let row_str = state.text_row(i);
+                if row_str.contains("libmario-gate") {
+                    found = true;
+                    target_row = i;
+                    break;
+                }
+            }
+            if found {
                 break;
             }
             std::thread::sleep(Duration::from_millis(25));
@@ -1877,8 +1885,8 @@ mod tests {
         }
         assert!(delegate.wakeups.load(Ordering::SeqCst) > 0);
 
-        surface.selection_begin(0, 0, SelectionKind::Simple, Side::Left);
-        surface.selection_update(0, 9, Side::Right);
+        surface.selection_begin(target_row as i32, 0, SelectionKind::Simple, Side::Left);
+        surface.selection_update(target_row as i32, 9, Side::Right);
         let text = surface.selection_text().expect("selection text");
         assert!(!text.is_empty());
         state.update();
