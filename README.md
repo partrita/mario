@@ -45,6 +45,13 @@ Mario was created to provide an independently maintained, finely tuned terminal 
   - Size-Optimized Release Profile: Configured `opt-level = "s"`, fat LTO (`lto = "fat"`), `codegen-units = 1`, `panic = "abort"`, and `strip = "symbols"` for minimal executable size and maximum dead-code elimination.
 - Project Rebranding: Workspace-wide crate renaming (`rio-*` to `mario-*`), updated repository endpoints (`partrita/mario`), and regenerated high-resolution icon assets (`.ico` and `.svg`).
 
+## What's New in 0.5.31
+
+- Tab titles lead with the tool, not the directory: the default title template is now `{{ title || program }}`, so a tab shows the title the program set for itself (Claude Code, Codex and friends set one) or the program the pane spawned, rather than a long working-directory path. The strip stamps the 1-based tab number itself, where truncation cannot reach it. `[navigation] tab-title = "path"` restores the old look.
+- Finished-tab marks: a tab whose command finished while it was in the background takes a `!` mark plus an amber line along its lower edge, so "which tab wants me" is a glance instead of a read. The tab already on screen gets a 300 ms colour flash instead — a standing mark there would be a notification you could never dismiss. A bell and an OSC 9 / OSC 777 desktop notification both count as the tab finishing.
+- Running spinner: a pane reporting `OSC 9;4;3` (indeterminate progress) shows a spinner in its tab once it has been running for 500 ms, so `ls` and `git status` never flicker one on. The runner is per pane and dies with the reports that justify it, so a tool that goes silent stops spinning.
+- New `[navigation]` keys: `tab-title` (`index+title`, `title`, `path`), `tab-glyphs` (`unicode`, `ascii`), and `tab-animation`. `[bell] tab-indicator` still turns the marks off entirely.
+
 ## What's New in 0.5.30
 
 - Row-level glyph uploads: The Metal and Vulkan grid backends now keep a fixed vertex-buffer slot per row and upload only rows written since the last frame. Typing and scrolling no longer re-copy the whole grid to the GPU on every change.
