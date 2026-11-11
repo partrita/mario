@@ -8,6 +8,7 @@
 
 use crate::context::ContextManager;
 use crate::renderer::helpers::spring::Spring;
+use mario_backend::config::navigation::{TabGlyphs, TabTitle};
 use mario_backend::event::{EventProxy, ProgressReport, ProgressState};
 use mario_backend::sugarloaf::text::DrawOpts;
 use mario_backend::sugarloaf::{Attributes, Sugarloaf};
@@ -26,16 +27,51 @@ const TAB_GAP: f32 = 6.0;
 const TAB_INSET_Y: f32 = 7.0;
 const TAB_RADIUS: f32 = 6.0;
 const TITLE_ELLIPSIS: char = '…';
-/// Bell dot for tabs that rang while in the background, and the gap
-/// between it and the tab title. A dot, not a glyph: the UI text layer
-/// resolves one font per run, so a bell glyph exists only where an
-/// emoji font is installed and resolvable, while a dot renders
-/// identically everywhere. Drawn at rect order 1: the tab backgrounds
-/// are submitted at order 0 AFTER the title pass, so a same-order dot
-/// would be painted over and invisible in every multi-tab strip.
-const BELL_DOT_SIZE: f32 = 6.0;
-const BELL_DOT_ORDER: u8 = 1;
-const BELL_GAP: f32 = 4.0;
+/// Completion mark for a tab whose command finished while that tab was in
+/// the background. Drawn as its own text run, never glued onto the title:
+/// the UI text layer resolves one font per run, so a mark sharing a run
+/// with the title would shape the whole title in the mark's font. `!` is
+/// ASCII, so unlike an emoji bell it renders wherever the UI font came
+/// from — which is the whole reason the strip can use a glyph at all.
+const MARK_GLYPH: char = '!';
+/// Gap between the mark, the runner, the position prefix and the title.
+const MARK_GAP: f32 = 4.0;
+/// Accent line under a marked tab. The mark lives inside the title, where
+/// spotting it means reading the strip; the line makes "which tab wants
+/// me" a glance. Drawn at rect order 1: tab backgrounds are submitted at
+/// order 0 AFTER the title pass, so a same-order line would be painted
+/// over and invisible in every multi-tab strip.
+const MARK_UNDERLINE_HEIGHT: f32 = 2.0;
+const MARK_UNDERLINE_INSET: f32 = 12.0;
+const MARK_UNDERLINE_ORDER: u8 = 1;
+/// Amber, deliberately clear of the theme accent that marks the ACTIVE
+/// tab: "needs you" must never read as "selected".
+const ATTENTION_COLOR: [f32; 4] = [0.90, 0.57, 0.22, 1.0];
+/// A command that finishes while its tab is already on screen gets a
+/// one-shot colour flash instead of a mark. There the user is looking
+/// straight at the result, and a mark would sit in the strip as a
+/// notification they can never dismiss.
+const FLASH_MILLIS: u64 = 300;
+/// How long a command has to run before its tab shows a runner. Without
+/// the grace period, `ls` and `git status` would flicker one on every
+/// keystroke.
+const RUNNER_GRACE_MILLIS: u64 = 500;
+/// One runner frame, and the gap it leaves before the title.
+const RUNNER_FRAME_MILLIS: u64 = 80;
+/// How much of the title's colour the position prefix keeps: scaffolding,
+/// not part of the name.
+const INDEX_ALPHA: f32 = 0.55;
+
+/// What the strip knows about one pane's running command. Two clocks,
+/// because they answer different questions: `started` decides where in the
+/// spinner cycle the tab is, and must not move, or a tool heartbeating
+/// every 100 ms would reset the animation phase on every report (the same
+/// bug the progress bar hit in #1509). `last_seen` decides whether the
+/// runner is still true, and is refreshed on every report.
+struct Running {
+    started: Instant,
+    last_seen: Instant,
+}
 const DRAG_THRESHOLD: f32 = 4.0;
 const DRAG_ANIMATION_LENGTH: f32 = 0.15;
 const DRAG_MAX_DT: f32 = 0.05;
@@ -345,6 +381,20 @@ pub struct Island {
     pub max_tab_width: f32,
     pub inactive_text_color: [f32; 4],
     pub active_text_color: [f32; 4],
+    /// What each tab's title shows (`navigation.tab-title`).
+    pub tab_title: TabTitle,
+    /// Glyph set for the marks (`navigation.tab-glyphs`).
+    pub tab_glyphs: TabGlyphs,
+    /// Whether the runner animates (`navigation.tab-animation`).
+    pub tab_animation: bool,
+    /// Panes whose command is reporting progress (OSC 9;4). Keyed by
+    /// route, not by tab index: a reorder or a close renumbers tabs, and a
+    /// runner that followed the wrong one would claim a command is running
+    /// that isn't — worse than showing no runner at all.
+    running: FxHashMap<usize, Running>,
+    /// Pane whose command finished while it was on screen, and when: the
+    /// one-shot flash that stands in for a mark there. Route-keyed too.
+    flash: Option<(usize, Instant)>,
     /// Current progress bar state
     progress_state: Option<ProgressState>,
     /// Current progress value (0-100)
@@ -391,6 +441,11 @@ impl Island {
             max_tab_width,
             inactive_text_color,
             active_text_color,
+            tab_title: TabTitle::default(),
+            tab_glyphs: TabGlyphs::default(),
+            tab_animation: true,
+            running: FxHashMap::default(),
+            flash: None,
             progress_state: None,
             progress_value: None,
             progress_started_at: None,
@@ -424,6 +479,130 @@ impl Island {
     ) {
         self.inactive_text_color = inactive_text_color;
         self.active_text_color = active_text_color;
+    }
+
+    /// Reflect `[navigation]`'s tab styling. Called at construction and on
+    /// every config reload.
+    pub fn set_tab_style(
+        &mut self,
+        tab_title: TabTitle,
+        tab_glyphs: TabGlyphs,
+        tab_animation: bool,
+    ) {
+        self.tab_title = tab_title;
+        self.tab_glyphs = tab_glyphs;
+        self.tab_animation = tab_animation;
+    }
+
+    /// The pane at `route_id` started or stopped reporting progress
+    /// (OSC 9;4). Only `Indeterminate` counts as running: the states that
+    /// carry a percentage are a tool saying how far along it is, which
+    /// the strip already shows as the bar under it. A command that stops
+    /// reporting leaves its tab immediately — a runner stuck on after the
+    /// work is done would have the user waiting for nothing.
+    ///
+    /// Scoped to its own pane: one tool hiding its bar says nothing about
+    /// whether another tool is still working.
+    pub fn set_running(&mut self, route_id: usize, running: bool) {
+        if !running {
+            self.running.remove(&route_id);
+            return;
+        }
+
+        let now = Instant::now();
+        self.running
+            .entry(route_id)
+            .and_modify(|entry| entry.last_seen = now)
+            .or_insert(Running {
+                started: now,
+                last_seen: now,
+            });
+    }
+
+    /// The pane at `route_id` finished. Its tab flashes instead of taking
+    /// a mark when it is the one on screen; the caller does not have to
+    /// know which tab that is.
+    pub fn on_completion(&mut self, route_id: usize) {
+        self.running.remove(&route_id);
+        self.flash = Some((route_id, Instant::now()));
+    }
+
+    /// The runner frame for `route_id`, or `None` while its command has
+    /// not yet outlived `RUNNER_GRACE_MILLIS` — or is not running.
+    fn runner_frame(&self, route_id: usize) -> Option<char> {
+        let running = self.running.get(&route_id)?;
+        self.runner_frame_after(running.started.elapsed().as_millis() as u64)
+    }
+
+    /// The frame a command that has been running `elapsed_ms` shows.
+    /// Split from the clock so the schedule can be tested without waiting
+    /// on it.
+    fn runner_frame_after(&self, elapsed_ms: u64) -> Option<char> {
+        if elapsed_ms < RUNNER_GRACE_MILLIS {
+            return None;
+        }
+
+        let frames = self.tab_glyphs.spinner_frames();
+        if frames.is_empty() {
+            return None;
+        }
+
+        let frame = if self.tab_animation {
+            // Measured from the appearance, not from the command's start:
+            // the grace period would otherwise offset the cycle by a
+            // random-looking half-turn the user never saw begin.
+            ((elapsed_ms - RUNNER_GRACE_MILLIS) / RUNNER_FRAME_MILLIS) as usize
+                % frames.len()
+        } else {
+            0
+        };
+        Some(frames[frame])
+    }
+
+    /// Whether `route_id` is inside its one-shot completion flash.
+    fn is_flashing(&self, route_id: usize) -> bool {
+        self.flash.is_some_and(|(route, at)| {
+            self.flash_active(route, route_id, at.elapsed().as_millis() as u64)
+        })
+    }
+
+    /// Whether a flash recorded for `flashed` still applies to
+    /// `route_id` after `elapsed_ms`. Clock-free, like `runner_frame_after`.
+    fn flash_active(&self, flashed: usize, route_id: usize, elapsed_ms: u64) -> bool {
+        flashed == route_id && elapsed_ms < FLASH_MILLIS
+    }
+
+    /// Drop runner/flash state for panes that are no longer in the window,
+    /// and clamp flash to tabs that still exist: a closed pane must not
+    /// leave a runner behind for a route id that a later pane could reuse.
+    fn retain_live(&mut self, context_manager: &ContextManager<EventProxy>) {
+        let live: Vec<usize> = (0..context_manager.len())
+            .filter_map(|tab| context_manager.route_for_tab(tab))
+            .collect();
+        self.retain_routes(&live);
+    }
+
+    /// The policy half of `retain_live`, split off so it can be exercised
+    /// without a live pane set.
+    fn retain_routes(&mut self, live: &[usize]) {
+        // A pane that reports `Indeterminate` and then goes quiet — no
+        // `Remove`, no bell, no notification, because the tool died or was
+        // killed — would otherwise leave its spinner turning until the tab
+        // was closed. The runner lives and dies with the reports that
+        // justify it, on the same heartbeat the progress bar uses.
+        let now = Instant::now();
+        self.running.retain(|route, entry| {
+            live.contains(route)
+                && now.duration_since(entry.last_seen).as_secs()
+                    < PROGRESS_BAR_TIMEOUT_SECS
+        });
+        if self
+            .flash
+            .map(|(route, _)| route)
+            .is_some_and(|route| !live.contains(&route))
+        {
+            self.flash = None;
+        }
     }
 
     /// Update the progress bar state from an OSC 9;4 report.
@@ -463,6 +642,11 @@ impl Island {
         // only the slide springs animate between input events.
         matches!(self.progress_state, Some(ProgressState::Indeterminate))
             || !self.slide_springs.is_empty()
+            // A visible runner advances on its own clock, and the flash is
+            // a deadline: both need frames nobody asked for, or they would
+            // freeze until unrelated damage arrived.
+            || (self.tab_animation && !self.running.is_empty())
+            || self.flash.is_some()
     }
 
     /// Arm a tab drag at mouse press. The drag only `started`s once the
@@ -650,6 +834,10 @@ impl Island {
                 self.progress_value = None;
                 self.progress_started_at = None;
                 self.progress_last_seen = None;
+                // The runners go the same way the bar does, but they are
+                // swept per pane in `retain_routes`: the bar is one bar for
+                // the window, while a runner belongs to the pane that
+                // reported it.
             }
         }
     }
@@ -751,6 +939,20 @@ impl Island {
         let num_tabs = context_manager.len();
         let current_tab_index = context_manager.current_index();
 
+        // Both the flash and the runner set are deadlines, not states, and
+        // dropping them as they run out is what lets `needs_redraw` stop
+        // asking for frames. Before the early return below: a strip that
+        // stops being drawn must not leave a deadline that keeps the
+        // renderer awake.
+        if let Some((_, at)) = self.flash {
+            if at.elapsed().as_millis() as u64 >= FLASH_MILLIS {
+                self.flash = None;
+            }
+        }
+        if !self.running.is_empty() {
+            self.retain_live(context_manager);
+        }
+
         // Immediate-mode: no cached ids to hide. If we early-return
         // without drawing, the tabs just don't appear this frame.
         if self.hide_if_single && num_tabs == 1 {
@@ -849,7 +1051,7 @@ impl Island {
             // fill to carry a custom colour, which moves to the text.
             let single = num_tabs == 1;
 
-            let text_color = if single {
+            let mut text_color = if single {
                 match context_manager.custom_color(tab_index) {
                     Some(mut custom) => {
                         custom[3] = 1.0;
@@ -863,22 +1065,62 @@ impl Island {
                 self.inactive_text_color
             };
 
+            let route = context_manager.route_for_tab(tab_index);
+
+            // The completion mark is its own text run: the UI text layer
+            // resolves a single font per draw from the run's first char, so
+            // gluing it onto the title would shape the whole title in the
+            // mark's font.
+            let marked = context_manager.bell(tab_index);
+            // A tab that just finished while the user was looking at it
+            // carries no mark — they can already see the result — so it
+            // flashes instead. `mark` wins where both could apply: a mark
+            // is a standing reminder, a flash is not.
+            let flashing = !marked && route.is_some_and(|r| self.is_flashing(r));
+            if flashing {
+                text_color = ATTENTION_COLOR;
+            }
+            // The runner and the mark share the slot before the title: a
+            // command is either running or finished, never both.
+            let glyph = tab_glyph(marked, route.and_then(|r| self.runner_frame(r)));
+
+            // The position prefix is drawn by the strip rather than by the
+            // title template: it is the tab's address in the bar, so it has
+            // to survive the title being truncated. A lone tab has nothing
+            // to be told apart from and spends no width on one.
+            let index_label = (self.tab_title.shows_index() && !single)
+                .then(|| (tab_index + 1).to_string());
+
             let title_opts = DrawOpts {
                 font_size: TITLE_FONT_SIZE,
                 color: color_u8(text_color),
                 ..DrawOpts::default()
             };
+            let index_opts = DrawOpts {
+                font_size: TITLE_FONT_SIZE,
+                color: color_u8(with_alpha(text_color, INDEX_ALPHA)),
+                ..DrawOpts::default()
+            };
+            let glyph_opts = DrawOpts {
+                font_size: TITLE_FONT_SIZE,
+                color: color_u8(if marked { ATTENTION_COLOR } else { text_color }),
+                ..DrawOpts::default()
+            };
 
-            // The bell mark is its own text run: the UI text layer resolves
-            // a single font per draw from the run's first char, so gluing it
-            // onto the title would shape the whole title in the emoji font.
-            let bell = context_manager.bell(tab_index);
-            let bell_width = if bell { BELL_DOT_SIZE + BELL_GAP } else { 0.0 };
+            let index_width = index_label.as_deref().map_or(0.0, |label| {
+                sugarloaf.text_mut().measure(label, &index_opts) + MARK_GAP
+            });
+            let glyph_text = glyph.map(|c| c.to_string());
+            let glyph_width = glyph_text.as_deref().map_or(0.0, |g| {
+                sugarloaf.text_mut().measure(g, &glyph_opts) + MARK_GAP
+            });
+            let prefix_width = index_width + glyph_width;
 
             let max_text_width = if single {
-                single_title_budget(window_width, scale_factor, left_margin) - bell_width
+                single_title_budget(window_width, scale_factor, left_margin)
+                    - prefix_width
             } else {
-                tab_width - TAB_PADDING_X * 2.0 - bell_width
+                tab_width - TAB_PADDING_X * 2.0 - prefix_width
             }
             .max(0.0);
             let title = fit_title_to_width(sugarloaf, &raw_title, max_text_width);
@@ -895,41 +1137,28 @@ impl Island {
 
             if !hidden_by_drag {
                 // Measure → centre → draw. Immediate mode, no cached
-                // text_id bookkeeping. The bell mark and the title are
-                // centred as one group.
+                // text_id bookkeeping. The position, the mark and the title
+                // are centred as one group.
                 let text_width =
-                    sugarloaf.text_mut().measure(&title, &title_opts) + bell_width;
+                    sugarloaf.text_mut().measure(&title, &title_opts) + prefix_width;
                 let text_x = if single {
                     single_title_x(window_width, scale_factor, text_width, left_margin)
                 } else {
                     tab_x + (tab_width - text_width) / 2.0
                 };
                 let text_y = (ISLAND_HEIGHT / 2.0) - (TITLE_FONT_SIZE / 2.);
-                if bell {
-                    // Centered on the title's lowercase body, not the strip:
-                    // the em box hangs from `text_y` with its optical middle
-                    // about two thirds down, so a strip-centered dot rides
-                    // visibly high next to lowercase titles.
-                    let dot_y =
-                        text_y + TITLE_FONT_SIZE * (2.0 / 3.0) - BELL_DOT_SIZE / 2.0;
-                    sugarloaf.rounded_rect(
-                        None,
-                        text_x,
-                        dot_y,
-                        BELL_DOT_SIZE,
-                        BELL_DOT_SIZE,
-                        text_color,
-                        0.0,
-                        BELL_DOT_SIZE / 2.0,
-                        BELL_DOT_ORDER,
-                    );
+
+                let ui = sugarloaf.text_mut();
+                let mut cursor_x = text_x;
+                if let Some(label) = index_label.as_deref() {
+                    ui.draw(cursor_x, text_y, label, &index_opts);
+                    cursor_x += index_width;
                 }
-                sugarloaf.text_mut().draw(
-                    text_x + bell_width,
-                    text_y,
-                    &title,
-                    &title_opts,
-                );
+                if let Some(glyph) = glyph_text.as_deref() {
+                    ui.draw(cursor_x, text_y, glyph, &glyph_opts);
+                    cursor_x += glyph_width;
+                }
+                ui.draw(cursor_x, text_y, &title, &title_opts);
             }
 
             // Nothing is drawn behind a lone title.
@@ -972,6 +1201,27 @@ impl Island {
                 Some(bg_color),
                 0,
             );
+
+            // Accent line along the island's lower edge for a marked tab.
+            // The `!` alone is legible only once the eye is already on the
+            // tab; the line is what makes a finished tab findable while
+            // scanning the strip.
+            if marked {
+                let underline_width = (iw - MARK_UNDERLINE_INSET * 2.0).max(0.0);
+                if underline_width > 0.0 {
+                    sugarloaf.rounded_rect(
+                        None,
+                        ix + MARK_UNDERLINE_INSET,
+                        iy + ih - MARK_UNDERLINE_HEIGHT,
+                        underline_width,
+                        MARK_UNDERLINE_HEIGHT,
+                        ATTENTION_COLOR,
+                        0.0,
+                        MARK_UNDERLINE_HEIGHT / 2.0,
+                        MARK_UNDERLINE_ORDER,
+                    );
+                }
+            }
 
             if is_active && num_tabs > 1 {
                 if let Some(cx) = close_button_center(ix, iw) {
@@ -1477,6 +1727,25 @@ impl Island {
     }
 }
 
+/// Fade a colour without touching its hue, for text that is present but
+/// not the point.
+#[inline]
+fn with_alpha(c: [f32; 4], alpha: f32) -> [f32; 4] {
+    [c[0], c[1], c[2], c[3] * alpha]
+}
+
+/// The glyph a tab leads with, if any. The completion mark wins over the
+/// runner: a tab whose command has finished must not keep claiming to be
+/// busy, whatever report was last seen for it.
+#[inline]
+fn tab_glyph(marked: bool, runner: Option<char>) -> Option<char> {
+    if marked {
+        Some(MARK_GLYPH)
+    } else {
+        runner
+    }
+}
+
 #[inline]
 fn color_u8(c: [f32; 4]) -> [u8; 4] {
     [
@@ -1629,6 +1898,158 @@ mod tests {
 
     fn test_island() -> Island {
         Island::new([0.5, 0.5, 0.5, 1.0], [0.9, 0.9, 0.9, 1.0], false, 240.0)
+    }
+
+    /// A tab that flickers a runner on every `ls` is worse than one that
+    /// shows none, so the grace period is the feature, not a detail.
+    #[test]
+    fn runner_appears_only_after_the_grace_period() {
+        let island = test_island();
+        assert_eq!(island.runner_frame_after(0), None);
+        assert_eq!(island.runner_frame_after(RUNNER_GRACE_MILLIS - 1), None);
+        assert!(island.runner_frame_after(RUNNER_GRACE_MILLIS).is_some());
+    }
+
+    #[test]
+    fn runner_frame_advances_and_freezes_with_animation_off() {
+        let mut island = test_island();
+        let frames = TabGlyphs::Unicode.spinner_frames();
+
+        let first = island.runner_frame_after(RUNNER_GRACE_MILLIS).unwrap();
+        assert_eq!(first, frames[0]);
+        let second = island
+            .runner_frame_after(RUNNER_GRACE_MILLIS + RUNNER_FRAME_MILLIS)
+            .unwrap();
+        assert_eq!(second, frames[1]);
+        assert_ne!(first, second);
+
+        // Frames wrap rather than run off the set.
+        let wrapped = island
+            .runner_frame_after(
+                RUNNER_GRACE_MILLIS + RUNNER_FRAME_MILLIS * frames.len() as u64,
+            )
+            .unwrap();
+        assert_eq!(wrapped, frames[0]);
+
+        // With animation off the runner still says "running", it just
+        // stands still — which is the point of the setting.
+        island.set_tab_style(TabTitle::IndexAndTitle, TabGlyphs::Unicode, false);
+        assert_eq!(
+            island.runner_frame_after(RUNNER_GRACE_MILLIS),
+            Some(frames[0])
+        );
+        assert_eq!(
+            island.runner_frame_after(RUNNER_GRACE_MILLIS + RUNNER_FRAME_MILLIS * 3),
+            Some(frames[0])
+        );
+    }
+
+    #[test]
+    fn runner_follows_the_configured_glyph_set() {
+        let mut island = test_island();
+        island.set_tab_style(TabTitle::IndexAndTitle, TabGlyphs::Ascii, true);
+        let frame = island.runner_frame_after(RUNNER_GRACE_MILLIS).unwrap();
+        assert!(frame.is_ascii());
+        assert!(TabGlyphs::Ascii.spinner_frames().contains(&frame));
+    }
+
+    #[test]
+    fn a_finished_command_takes_the_mark_over_the_runner() {
+        assert_eq!(tab_glyph(true, Some('⠋')), Some(MARK_GLYPH));
+        assert_eq!(tab_glyph(false, Some('⠋')), Some('⠋'));
+        assert_eq!(tab_glyph(false, None), None);
+        assert_eq!(tab_glyph(true, None), Some(MARK_GLYPH));
+    }
+
+    /// The flash stands in for a mark on the tab the user is looking at,
+    /// so it must not linger, and must not leak onto a neighbour.
+    #[test]
+    fn completion_flash_expires_and_stays_on_its_own_pane() {
+        let mut island = test_island();
+        island.on_completion(7);
+        assert!(island.flash_active(7, 7, 0));
+        assert!(island.flash_active(7, 7, FLASH_MILLIS - 1));
+        assert!(!island.flash_active(7, 7, FLASH_MILLIS));
+        assert!(!island.flash_active(7, 8, 0));
+
+        // The flash is a redraw deadline: while it stands, frames keep
+        // coming; once it is dropped, they stop.
+        assert!(island.needs_redraw());
+        island.flash = None;
+        assert!(!island.needs_redraw());
+    }
+
+    /// A runner keyed by tab index would follow the wrong tab through a
+    /// reorder or a close, and claim a command is running that isn't.
+    #[test]
+    fn completion_stops_the_runner_for_its_route_only() {
+        let mut island = test_island();
+        island.set_running(3, true);
+        island.set_running(4, true);
+        assert!(island.needs_redraw());
+
+        island.on_completion(3);
+        assert!(!island.running.contains_key(&3));
+        assert!(island.running.contains_key(&4));
+    }
+
+    /// Route ids are handed out again after a pane closes. State left
+    /// behind for a departed route would reappear on an unrelated tab.
+    #[test]
+    fn departing_panes_forget_their_runner_and_flash() {
+        let mut island = test_island();
+        island.set_running(1, true);
+        island.set_running(2, true);
+
+        island.retain_routes(&[1]);
+        assert!(island.running.contains_key(&1));
+        assert!(!island.running.contains_key(&2));
+
+        island.on_completion(1);
+        island.retain_routes(&[1]);
+        assert!(island.flash.is_some());
+
+        island.retain_routes(&[7]);
+        assert!(island.flash.is_none());
+    }
+
+    /// A tool that reports `Indeterminate` and then dies — no `Remove`, no
+    /// bell, nothing — must not leave its spinner turning forever: the tab
+    /// would claim work is happening that stopped long ago.
+    #[test]
+    fn a_silent_reporter_loses_its_runner() {
+        let mut island = test_island();
+        island.set_running(2, true);
+
+        // Still reporting: the sweep leaves it alone.
+        island.retain_routes(&[2]);
+        assert!(island.running.contains_key(&2));
+
+        // Reports stopped. The runner dies on the same heartbeat the
+        // progress bar uses, measured from the last report rather than
+        // from the start, so a heartbeat cannot expire a live runner.
+        island.running.get_mut(&2).unwrap().last_seen = Instant::now()
+            - std::time::Duration::from_secs(PROGRESS_BAR_TIMEOUT_SECS + 1);
+        island.retain_routes(&[2]);
+        assert!(!island.running.contains_key(&2));
+        assert!(!island.needs_redraw());
+    }
+
+    /// The frame cycle must not restart on every heartbeat, or a tool
+    /// reporting every 100 ms would hold the spinner on one frame forever
+    /// (the progress bar's #1509 bug, in the strip this time).
+    #[test]
+    fn a_heartbeat_does_not_reset_the_frame_cycle() {
+        let mut island = test_island();
+        island.set_running(2, true);
+        island.running.get_mut(&2).unwrap().started = Instant::now()
+            - std::time::Duration::from_millis(
+                RUNNER_GRACE_MILLIS + RUNNER_FRAME_MILLIS * 2,
+            );
+
+        let before = island.runner_frame(2);
+        island.set_running(2, true);
+        assert_eq!(island.runner_frame(2), before);
     }
 
     #[test]

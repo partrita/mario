@@ -256,14 +256,22 @@ pub enum MarioEvent {
 
     CursorBlinkingChangeOnRoute(usize),
 
-    /// Progress bar report from OSC 9;4 sequence
-    ProgressReport(ProgressReport),
+    /// Progress bar report from OSC 9;4 sequence, from the PTY identified
+    /// by `route_id` — the tab strip attributes a runner to the tab that
+    /// actually reported, so the report has to carry where it came from.
+    ProgressReport {
+        route_id: usize,
+        report: ProgressReport,
+    },
 
     /// Terminal bell ring, from the PTY identified by `route_id`.
     Bell(usize),
 
-    /// Desktop notification from OSC 9 or OSC 777.
+    /// Desktop notification from OSC 9 or OSC 777, from the PTY identified
+    /// by `route_id`: a tool announcing it is done is a completion signal
+    /// for the strip as much as the bell is.
     DesktopNotification {
+        route_id: usize,
         title: String,
         body: String,
     },
@@ -332,8 +340,8 @@ impl Debug for MarioEvent {
             MarioEvent::CursorBlinkingChangeOnRoute(route_id) => {
                 write!(f, "CursorBlinkingChangeOnRoute {route_id}")
             }
-            MarioEvent::ProgressReport(report) => {
-                write!(f, "ProgressReport({:?})", report)
+            MarioEvent::ProgressReport { route_id, report } => {
+                write!(f, "ProgressReport({:?} on route {route_id})", report)
             }
             MarioEvent::MouseCursorDirty => write!(f, "MouseCursorDirty"),
             MarioEvent::ResetTitle => write!(f, "ResetTitle"),
@@ -356,8 +364,15 @@ impl Debug for MarioEvent {
             }
             MarioEvent::Scroll(scroll) => write!(f, "Scroll {scroll:?}"),
             MarioEvent::Bell(route_id) => write!(f, "Bell route {route_id}"),
-            MarioEvent::DesktopNotification { title, body } => {
-                write!(f, "DesktopNotification({title}, {body})")
+            MarioEvent::DesktopNotification {
+                route_id,
+                title,
+                body,
+            } => {
+                write!(
+                    f,
+                    "DesktopNotification({title}, {body} on route {route_id})"
+                )
             }
             MarioEvent::Exit => write!(f, "Exit"),
             MarioEvent::Quit => write!(f, "Quit"),

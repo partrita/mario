@@ -117,6 +117,134 @@ impl std::str::FromStr for NavigationMode {
     }
 }
 
+/// What a tab's title shows. The 1-based position is drawn by the strip
+/// itself (`island.rs`), not by the title template, so it stays put
+/// whatever the template renders and cannot be truncated away.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
+pub enum TabTitle {
+    /// `1 claude` — position first, then the pane's title text. Position
+    /// is the part that survives a narrow tab, so it leads.
+    #[serde(rename = "index+title", alias = "index-and-title")]
+    IndexAndTitle,
+    /// `claude` — the title text alone.
+    #[serde(rename = "title")]
+    Title,
+    /// The pre-0.5.31 look: no position, and the working directory when
+    /// the pane sets no title of its own.
+    #[serde(rename = "path")]
+    Path,
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for TabTitle {
+    fn default() -> TabTitle {
+        TabTitle::IndexAndTitle
+    }
+}
+
+impl TabTitle {
+    const INDEX_AND_TITLE_STR: &'static str = "index+title";
+    const TITLE_STR: &'static str = "title";
+    const PATH_STR: &'static str = "path";
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::IndexAndTitle => Self::INDEX_AND_TITLE_STR,
+            Self::Title => Self::TITLE_STR,
+            Self::Path => Self::PATH_STR,
+        }
+    }
+
+    /// Whether the strip prefixes every tab with its 1-based position.
+    #[inline]
+    pub fn shows_index(&self) -> bool {
+        matches!(self, Self::IndexAndTitle)
+    }
+}
+
+impl std::fmt::Display for TabTitle {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseTabTitleError;
+
+impl std::str::FromStr for TabTitle {
+    type Err = ParseTabTitleError;
+
+    fn from_str(s: &str) -> Result<TabTitle, ParseTabTitleError> {
+        match s {
+            Self::INDEX_AND_TITLE_STR => Ok(TabTitle::IndexAndTitle),
+            Self::TITLE_STR => Ok(TabTitle::Title),
+            Self::PATH_STR => Ok(TabTitle::Path),
+            _ => Ok(TabTitle::default()),
+        }
+    }
+}
+
+/// Which glyph set the runner draws from. The completion mark is `!`
+/// either way — it is ASCII to begin with, which is why it renders
+/// everywhere. The sets differ only in the runner: Braille dots, which
+/// need a font that carries them, versus `|/-\`.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
+pub enum TabGlyphs {
+    #[serde(rename = "unicode")]
+    Unicode,
+    #[serde(rename = "ascii")]
+    Ascii,
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for TabGlyphs {
+    fn default() -> TabGlyphs {
+        TabGlyphs::Unicode
+    }
+}
+
+impl TabGlyphs {
+    const UNICODE_STR: &'static str = "unicode";
+    const ASCII_STR: &'static str = "ascii";
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Unicode => Self::UNICODE_STR,
+            Self::Ascii => Self::ASCII_STR,
+        }
+    }
+
+    /// The runner's frames, in the order they play.
+    #[inline]
+    pub fn spinner_frames(&self) -> &'static [char] {
+        match self {
+            Self::Unicode => &['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'],
+            Self::Ascii => &['|', '/', '-', '\\'],
+        }
+    }
+}
+
+impl std::fmt::Display for TabGlyphs {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseTabGlyphsError;
+
+impl std::str::FromStr for TabGlyphs {
+    type Err = ParseTabGlyphsError;
+
+    fn from_str(s: &str) -> Result<TabGlyphs, ParseTabGlyphsError> {
+        match s {
+            Self::UNICODE_STR => Ok(TabGlyphs::Unicode),
+            Self::ASCII_STR => Ok(TabGlyphs::Ascii),
+            _ => Ok(TabGlyphs::default()),
+        }
+    }
+}
+
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct ColorAutomation {
     #[serde(default = "String::new")]
@@ -178,6 +306,18 @@ pub struct Navigation {
     /// when few are open. Clamped to `[80.0, 280.0]` at load time.
     #[serde(default = "default_max_tab_width", rename = "max-tab-width")]
     pub max_tab_width: f32,
+    /// What each tab's title shows: `index+title` (the default),
+    /// `title`, or `path` for the pre-0.5.31 look.
+    #[serde(default = "TabTitle::default", rename = "tab-title")]
+    pub tab_title: TabTitle,
+    /// Glyph set the running runner draws from.
+    #[serde(default = "TabGlyphs::default", rename = "tab-glyphs")]
+    pub tab_glyphs: TabGlyphs,
+    /// Animate the runner. With it off a tab still shows that its
+    /// command is running, but the frames stand still — the cheap
+    /// option on a remote display or a machine already at capacity.
+    #[serde(default = "default_bool_true", rename = "tab-animation")]
+    pub tab_animation: bool,
 }
 
 impl Default for Navigation {
@@ -194,6 +334,9 @@ impl Default for Navigation {
             unfocused_split_fill: None,
             open_config_with_split: true,
             max_tab_width: default_max_tab_width(),
+            tab_title: TabTitle::default(),
+            tab_glyphs: TabGlyphs::default(),
+            tab_animation: true,
         }
     }
 }
@@ -229,6 +372,21 @@ impl Navigation {
     #[inline]
     pub fn island_visible(&self, num_tabs: usize) -> bool {
         self.is_enabled() && !(self.hide_if_single && num_tabs == 1)
+    }
+
+    /// The title template actually rendered: the user's `[title] content`,
+    /// except that `tab-title = "path"` restores the path-first default
+    /// when `[title] content` still holds the shipped default. Asking for
+    /// the old look must not require knowing the old template string, and
+    /// an explicitly configured `[title] content` still wins.
+    pub fn title_template(&self, configured: &str) -> String {
+        if self.tab_title == TabTitle::Path
+            && configured == crate::config::defaults::default_title_content()
+        {
+            return crate::config::defaults::legacy_title_content();
+        }
+
+        configured.to_string()
     }
 
     /// Whether the top band is reserved as custom window chrome this
@@ -285,7 +443,7 @@ mod tests {
     }
 
     use crate::config::colors::hex_to_color_arr;
-    use crate::config::navigation::{Navigation, NavigationMode};
+    use crate::config::navigation::{Navigation, NavigationMode, TabGlyphs, TabTitle};
     use serde::Deserialize;
 
     #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -329,6 +487,87 @@ mod tests {
         .unwrap();
         assert!(!off.navigation.hide_if_single);
         assert!(off.navigation.island_visible(1));
+    }
+
+    /// The new title style and its two escape hatches.
+    #[test]
+    fn tab_title_mode_parses_and_defaults() {
+        let default = toml::from_str::<Root>("[navigation]\nmode = 'Tab'\n").unwrap();
+        assert_eq!(default.navigation.tab_title, TabTitle::IndexAndTitle);
+        assert!(default.navigation.tab_title.shows_index());
+        assert_eq!(default.navigation.tab_glyphs, TabGlyphs::Unicode);
+        assert!(default.navigation.tab_animation);
+
+        let titled =
+            toml::from_str::<Root>("[navigation]\ntab-title = 'title'\n").unwrap();
+        assert_eq!(titled.navigation.tab_title, TabTitle::Title);
+        assert!(!titled.navigation.tab_title.shows_index());
+
+        let legacy = toml::from_str::<Root>(
+            "[navigation]\ntab-title = 'path'\ntab-glyphs = 'ascii'\n\
+             tab-animation = false\n",
+        )
+        .unwrap();
+        assert_eq!(legacy.navigation.tab_title, TabTitle::Path);
+        assert!(!legacy.navigation.tab_title.shows_index());
+        assert_eq!(legacy.navigation.tab_glyphs, TabGlyphs::Ascii);
+        assert!(!legacy.navigation.tab_animation);
+
+        // Both enums round-trip through their own spelling.
+        for mode in [TabTitle::IndexAndTitle, TabTitle::Title, TabTitle::Path] {
+            assert_eq!(mode.as_str().parse::<TabTitle>().unwrap(), mode);
+        }
+        for glyphs in [TabGlyphs::Unicode, TabGlyphs::Ascii] {
+            assert_eq!(glyphs.as_str().parse::<TabGlyphs>().unwrap(), glyphs);
+        }
+    }
+
+    /// Asking for the old look must not require knowing the old template
+    /// string — but an explicitly written template still wins.
+    #[test]
+    fn path_mode_only_swaps_an_untouched_default_template() {
+        let default_content = crate::config::defaults::default_title_content();
+
+        let path = Navigation {
+            tab_title: TabTitle::Path,
+            ..Navigation::default()
+        };
+        assert_eq!(
+            path.title_template(&default_content),
+            crate::config::defaults::legacy_title_content()
+        );
+        assert_eq!(path.title_template("{{ columns }}"), "{{ columns }}");
+
+        for tab_title in [TabTitle::IndexAndTitle, TabTitle::Title] {
+            let nav = Navigation {
+                tab_title,
+                ..Navigation::default()
+            };
+            assert_eq!(nav.title_template(&default_content), default_content);
+        }
+    }
+
+    /// The ASCII set exists for fonts without the Unicode marks, so it
+    /// has to be ASCII all the way down; the Unicode set is the one that
+    /// needs a font with the glyphs.
+    #[test]
+    fn tab_glyph_sets_are_font_safe() {
+        assert!(TabGlyphs::Ascii
+            .spinner_frames()
+            .iter()
+            .all(|c| c.is_ascii()));
+        assert!(!TabGlyphs::Ascii.spinner_frames().is_empty());
+        assert!(TabGlyphs::Unicode
+            .spinner_frames()
+            .iter()
+            .all(|c| !c.is_ascii()));
+        assert!(!TabGlyphs::Unicode.spinner_frames().is_empty());
+        // The two sets must not overlap, or `ascii` would be a no-op for
+        // the users who need it: the frames are the whole difference.
+        assert_ne!(
+            TabGlyphs::Unicode.spinner_frames(),
+            TabGlyphs::Ascii.spinner_frames()
+        );
     }
 
     #[test]

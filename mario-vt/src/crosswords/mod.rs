@@ -3472,8 +3472,13 @@ impl<U: EventListener> Handler for Crosswords<U> {
     }
 
     fn set_progress_report(&mut self, report: crate::event::ProgressReport) {
-        self.event_proxy
-            .send_event(MarioEvent::ProgressReport(report), self.window_id);
+        self.event_proxy.send_event(
+            MarioEvent::ProgressReport {
+                route_id: self.route_id,
+                report,
+            },
+            self.window_id,
+        );
     }
 
     fn set_current_directory(&mut self, path: std::path::PathBuf) {
@@ -4300,7 +4305,11 @@ impl<U: EventListener> Handler for Crosswords<U> {
     #[inline]
     fn desktop_notification(&mut self, title: String, body: String) {
         self.event_proxy.send_event(
-            MarioEvent::DesktopNotification { title, body },
+            MarioEvent::DesktopNotification {
+                route_id: self.route_id,
+                title,
+                body,
+            },
             self.window_id,
         );
     }

@@ -25,8 +25,20 @@ pub fn default_title_placeholder() -> Option<String> {
     Some(String::from("▲"))
 }
 
+/// The title a pane shows: the OSC 0/2 title the program set for itself
+/// (Claude Code, Codex and friends all set one), falling back to the
+/// program the pane spawned for tools that don't. The working directory
+/// moved out of the default because it is long, it eats the width a tab
+/// strip has to share, and the pane it belongs to is already on screen.
 #[inline]
 pub fn default_title_content() -> String {
+    String::from("{{ TITLE || PROGRAM }}")
+}
+
+/// What `default_title_content` used to be, so `navigation.tab-title =
+/// "path"` can restore it without the user knowing the string.
+#[inline]
+pub fn legacy_title_content() -> String {
     #[cfg(unix)]
     return String::from("{{ TITLE || RELATIVE_PATH }}");
 

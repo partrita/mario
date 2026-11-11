@@ -141,6 +141,19 @@ fn window_should_be_opaque(config: &mario_backend::config::Config) -> bool {
     config.window.opacity >= 1.0 && !config.window.blur.is_glass()
 }
 
+/// `[navigation] tab-title` decides which template the panes render, so
+/// every place that adopts `config.title` goes through here — the initial
+/// build and the live reload alike. Resolving it in only one of them would
+/// make `tab-title` a restart-only setting.
+#[inline]
+fn resolved_title(
+    config: &mario_backend::config::Config,
+) -> mario_backend::config::title::Title {
+    let mut title = config.title.clone();
+    title.content = config.navigation.title_template(&title.content);
+    title
+}
+
 impl Screen<'_> {
     pub fn new<'screen>(
         window_properties: ScreenWindowProperties,
@@ -266,7 +279,7 @@ impl Screen<'_> {
             split_color: config.colors.split,
             split_active_color: config.colors.split_active,
             panel: config.panel,
-            title: config.title.clone(),
+            title: resolved_title(config),
             keyboard: config.keyboard.clone(),
             scrollback_history_limit: config.scrollback_history_limit,
             grapheme_clustering: config.grapheme_clustering,
@@ -564,6 +577,11 @@ impl Screen<'_> {
         if let Some(mut island) = old_island {
             island.update_colors(config.colors.tabs, config.colors.tabs_active);
             island.max_tab_width = config.navigation.max_tab_width;
+            island.set_tab_style(
+                config.navigation.tab_title,
+                config.navigation.tab_glyphs,
+                config.navigation.tab_animation,
+            );
             self.renderer.island = Some(island);
         }
 
@@ -611,7 +629,7 @@ impl Screen<'_> {
 
         // Update keyboard config in context manager
         self.context_manager.config.keyboard = config.keyboard.clone();
-        self.context_manager.config.title = config.title.clone();
+        self.context_manager.config.title = resolved_title(config);
 
         // Re-evaluate the opaque flag — toggling `window.opacity` /
         // `window.blur` at runtime should flip the compositor mode.

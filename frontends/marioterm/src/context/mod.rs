@@ -817,6 +817,24 @@ impl<T: EventListener + Clone + std::marker::Send + 'static> ContextManager<T> {
         }
     }
 
+    /// Route id of the pane tab `index` currently shows, if that tab
+    /// exists. Per-pane state that must survive reordering and closing is
+    /// keyed by route, and this is how a tab's route is looked back up.
+    #[inline]
+    pub fn route_for_tab(&self, index: usize) -> Option<usize> {
+        self.contexts.get(index).map(|grid| grid.current().route_id)
+    }
+
+    /// Drop one tab's bell mark. A new command starting in a tab consumes
+    /// the "finished" mark that tab was carrying, so the strip never shows
+    /// a tab as both running and done.
+    #[inline]
+    pub fn clear_bell(&mut self, index: usize) -> bool {
+        self.contexts
+            .get_mut(index)
+            .is_some_and(|grid| std::mem::replace(&mut grid.bell, false))
+    }
+
     #[inline]
     pub fn custom_color(&self, index: usize) -> Option<[f32; 4]> {
         self.contexts.get(index).and_then(|grid| grid.custom_color)

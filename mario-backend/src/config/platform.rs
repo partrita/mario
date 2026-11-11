@@ -110,6 +110,12 @@ pub struct PlatformNavigation {
         rename = "unfocused-split-fill"
     )]
     pub unfocused_split_fill: Option<crate::config::colors::ColorArray>,
+    #[serde(default = "Option::default", rename = "tab-title")]
+    pub tab_title: Option<navigation::TabTitle>,
+    #[serde(default = "Option::default", rename = "tab-glyphs")]
+    pub tab_glyphs: Option<navigation::TabGlyphs>,
+    #[serde(default = "Option::default", rename = "tab-animation")]
+    pub tab_animation: Option<bool>,
 }
 
 /// Platform-specific renderer config with optional fields for selective override

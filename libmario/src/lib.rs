@@ -210,7 +210,9 @@ impl Listener {
             MarioEvent::CloseTerminal(_) | MarioEvent::Exit => {
                 self.delegate.close_surface(self.surface_id);
             }
-            MarioEvent::ProgressReport(report) => {
+            // Surfaces aggregate progress for the whole window, so the
+            // reporting pane is not part of what they forward.
+            MarioEvent::ProgressReport { report, .. } => {
                 use mario_vt::event::ProgressState;
                 let state = match report.state {
                     ProgressState::Remove => 0,

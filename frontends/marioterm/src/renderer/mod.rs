@@ -228,12 +228,18 @@ impl Renderer {
         }
 
         let island = if config.navigation.is_enabled() {
-            Some(island::Island::new(
+            let mut island = island::Island::new(
                 named_colors.tabs,
                 named_colors.tabs_active,
                 config.navigation.hide_if_single,
                 config.navigation.max_tab_width,
-            ))
+            );
+            island.set_tab_style(
+                config.navigation.tab_title,
+                config.navigation.tab_glyphs,
+                config.navigation.tab_animation,
+            );
+            Some(island)
         } else {
             None
         };

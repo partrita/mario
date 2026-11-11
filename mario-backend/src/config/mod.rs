@@ -665,6 +665,15 @@ impl Config {
             if let Some(max_tab_width) = navigation_overwrite.max_tab_width {
                 self.navigation.max_tab_width = max_tab_width;
             }
+            if let Some(tab_title) = navigation_overwrite.tab_title {
+                self.navigation.tab_title = tab_title;
+            }
+            if let Some(tab_glyphs) = navigation_overwrite.tab_glyphs {
+                self.navigation.tab_glyphs = tab_glyphs;
+            }
+            if let Some(tab_animation) = navigation_overwrite.tab_animation {
+                self.navigation.tab_animation = tab_animation;
+            }
         }
 
         // Clamp after platform merge so both the base and any override go

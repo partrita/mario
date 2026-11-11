@@ -1,4 +1,6 @@
-use crate::event::{ClickState, EventPayload, EventProxy, MarioEvent, MarioEventType};
+use crate::event::{
+    ClickState, EventPayload, EventProxy, MarioEvent, MarioEventType, ProgressState,
+};
 use crate::ime::{Preedit, PreeditCursor};
 use crate::renderer::utils::update_colors_based_on_theme;
 use crate::router::{routes::RoutePath, Router};
@@ -152,6 +154,44 @@ impl Application<'_> {
 
     fn handle_desktop_notification(&self, title: &str, body: &str) {
         mario_notifier::send_notification(title, body);
+    }
+
+    /// A pane announced that it finished: a bell, or an OSC 9 / OSC 777
+    /// desktop notification, which is what a CLI tool sends when its work
+    /// is done.
+    ///
+    /// A tab in the background gets a standing mark. The tab the user is
+    /// already looking at does not — they can see the result, and a mark
+    /// there would be a notification they can never dismiss — so it gets a
+    /// one-shot flash instead.
+    fn announce_completion(
+        &mut self,
+        window_id: mario_backend::event::WindowId,
+        route_id: usize,
+    ) {
+        if !self.config.bell.tab_indicator {
+            return;
+        }
+
+        let Some(route) = self.router.routes.get_mut(&window_id) else {
+            return;
+        };
+        let focused = route.window.is_focused;
+        let marked = route
+            .window
+            .screen
+            .context_manager
+            .ring_bell(route_id, focused);
+        if let Some(island) = &mut route.window.screen.renderer.island {
+            island.on_completion(route_id);
+        }
+
+        // Repaint on a fresh mark (the edge trigger that keeps a BEL flood
+        // to one repaint) and on the flash, which only exists while the
+        // window has focus and the user can see it.
+        if marked || focused {
+            route.request_overlay_redraw();
+        }
     }
 
     pub fn run(
@@ -773,10 +813,29 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     }
                 }
             }
-            MarioEventType::Mario(MarioEvent::ProgressReport(report)) => {
+            MarioEventType::Mario(MarioEvent::ProgressReport { route_id, report }) => {
                 if let Some(route) = self.router.routes.get_mut(&window_id) {
+                    // An indeterminate report is a tool saying "still
+                    // working" — that is what earns its tab a runner. The
+                    // states carrying a percentage are how far along it
+                    // is, which the bar under the strip already shows.
+                    let running = matches!(report.state, ProgressState::Indeterminate);
+                    if running {
+                        // A new command in a tab consumes the "finished"
+                        // mark that tab was still carrying, so the strip
+                        // never shows a tab as both running and done.
+                        if let Some(tab_index) = route
+                            .window
+                            .screen
+                            .context_manager
+                            .tab_index_for_route(route_id)
+                        {
+                            route.window.screen.context_manager.clear_bell(tab_index);
+                        }
+                    }
                     if let Some(island) = &mut route.window.screen.renderer.island {
                         island.set_progress_report(report);
+                        island.set_running(route_id, running);
                         route.request_overlay_redraw();
                     }
                 }
@@ -793,22 +852,15 @@ impl ApplicationHandler<EventPayload> for Application<'_> {
                     self.handle_audio_bell();
                 }
 
-                if self.config.bell.tab_indicator {
-                    if let Some(route) = self.router.routes.get_mut(&window_id) {
-                        let focused = route.window.is_focused;
-                        if route
-                            .window
-                            .screen
-                            .context_manager
-                            .ring_bell(route_id, focused)
-                        {
-                            route.request_overlay_redraw();
-                        }
-                    }
-                }
+                self.announce_completion(window_id, route_id);
             }
-            MarioEventType::Mario(MarioEvent::DesktopNotification { title, body }) => {
+            MarioEventType::Mario(MarioEvent::DesktopNotification {
+                route_id,
+                title,
+                body,
+            }) => {
                 self.handle_desktop_notification(&title, &body);
+                self.announce_completion(window_id, route_id);
             }
             MarioEventType::Mario(MarioEvent::PrepareRender(millis)) => {
                 if let Some(route) = self.router.routes.get(&window_id) {
