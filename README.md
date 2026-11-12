@@ -45,6 +45,12 @@ Mario was created to provide an independently maintained, finely tuned terminal 
   - Size-Optimized Release Profile: Configured `opt-level = "s"`, fat LTO (`lto = "fat"`), `codegen-units = 1`, `panic = "abort"`, and `strip = "symbols"` for minimal executable size and maximum dead-code elimination.
 - Project Rebranding: Workspace-wide crate renaming (`rio-*` to `mario-*`), updated repository endpoints (`partrita/mario`), and regenerated high-resolution icon assets (`.ico` and `.svg`).
 
+## What's New in 0.5.32
+
+- Readable tab titles on every theme: a tab's fill is derived from the window background while its title comes from `[colors] tabs` / `tabs-active`, and nothing made the two agree. On both palettes Mario ships they collided — `rose-pine-dawn` drew its inactive titles at 1.02:1 and `rose-pine-moon` at 1.05:1, which is the title drawn in the fill's own colour. Every run in the strip — titles, position prefix, completion mark, running indicator and close button, including `color-automation` colours — is now held to a WCAG AA 4.5:1 contrast floor at draw time: a colour that already reads is left exactly as it is, one that does not falls back to the theme's `foreground`, and then to black or white. The completion mark is moved in brightness rather than replaced, so it stays amber. `[navigation] tab-text-contrast = "off"` draws the configured colours exactly as written; the default is `"auto"`.
+- The position prefix no longer dims itself: it was drawn at 55% alpha, which landed at 2.36:1 on the light fill and 4.25:1 on the dark one, both under the floor it is now subject to.
+- Documented the tab strip keys: `tab-title`, `tab-glyphs` and `tab-animation` were shipped in 0.5.31 without a man page entry; they and the new `tab-text-contrast` are in `mario(5)`, and the contrast decision is recorded in `docs/adr/0001-tab-text-contrast-floor.md`.
+
 ## What's New in 0.5.31
 
 - Tab titles lead with the tool, not the directory: the default title template is now `{{ title || program }}`, so a tab shows the title the program set for itself (Claude Code, Codex and friends set one) or the program the pane spawned, rather than a long working-directory path. The strip stamps the 1-based tab number itself, where truncation cannot reach it. `[navigation] tab-title = "path"` restores the old look.
