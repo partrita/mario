@@ -575,12 +575,17 @@ impl Screen<'_> {
         self.renderer = Renderer::new(config);
         self.renderer.is_window_focused = was_focused;
         if let Some(mut island) = old_island {
-            island.update_colors(config.colors.tabs, config.colors.tabs_active);
+            island.update_colors(
+                config.colors.tabs,
+                config.colors.tabs_active,
+                config.colors.foreground,
+            );
             island.max_tab_width = config.navigation.max_tab_width;
             island.set_tab_style(
                 config.navigation.tab_title,
                 config.navigation.tab_glyphs,
                 config.navigation.tab_animation,
+                config.navigation.tab_text_contrast,
             );
             self.renderer.island = Some(island);
         }

@@ -8,7 +8,7 @@
 
 use crate::context::ContextManager;
 use crate::renderer::helpers::spring::Spring;
-use mario_backend::config::navigation::{TabGlyphs, TabTitle};
+use mario_backend::config::navigation::{TabGlyphs, TabTextContrast, TabTitle};
 use mario_backend::event::{EventProxy, ProgressReport, ProgressState};
 use mario_backend::sugarloaf::text::DrawOpts;
 use mario_backend::sugarloaf::{Attributes, Sugarloaf};
@@ -58,9 +58,19 @@ const FLASH_MILLIS: u64 = 300;
 const RUNNER_GRACE_MILLIS: u64 = 500;
 /// One runner frame, and the gap it leaves before the title.
 const RUNNER_FRAME_MILLIS: u64 = 80;
-/// How much of the title's colour the position prefix keeps: scaffolding,
-/// not part of the name.
-const INDEX_ALPHA: f32 = 0.55;
+/// The contrast every run in the strip has to clear against the fill
+/// behind it: WCAG AA for small text, which a 12px tab title is.
+///
+/// The strip has two colour sources that never had to agree — the tab
+/// fills come from the window background's luminance, the titles from
+/// `[colors] tabs` / `tabs-active`. When they collide the title is drawn
+/// in the fill's own colour: the shipped `rose-pine-dawn` palette lands
+/// at 1.02:1 and `rose-pine-moon` at 1.05:1, which is how a tab gets a
+/// name nobody can read. Below this floor a glyph is technically drawn
+/// and practically not there, so the floor wins over the hierarchy the
+/// colours were carrying — the fill step, the mark and the flash still
+/// say which tab is which.
+const TEXT_CONTRAST_FLOOR: f32 = 4.5;
 
 /// What the strip knows about one pane's running command. Two clocks,
 /// because they answer different questions: `started` decides where in the
@@ -241,6 +251,128 @@ fn over(dst: [f32; 4], src: [f32; 4]) -> [f32; 4] {
     ]
 }
 
+/// WCAG relative luminance of an opaque colour.
+fn relative_luminance(c: [f32; 4]) -> f32 {
+    #[inline]
+    fn channel(v: f32) -> f32 {
+        let v = v.clamp(0.0, 1.0);
+        if v <= 0.04045 {
+            v / 12.92
+        } else {
+            ((v + 0.055) / 1.055).powf(2.4)
+        }
+    }
+    0.2126 * channel(c[0]) + 0.7152 * channel(c[1]) + 0.0722 * channel(c[2])
+}
+
+/// WCAG contrast ratio: 1.0 between two identical colours, 21.0 for
+/// black on white.
+fn contrast_ratio(a: [f32; 4], b: [f32; 4]) -> f32 {
+    let (la, lb) = (relative_luminance(a), relative_luminance(b));
+    let (hi, lo) = if la >= lb { (la, lb) } else { (lb, la) };
+    (hi + 0.05) / (lo + 0.05)
+}
+
+/// The colour a tab's text actually sits on. An island fill is drawn with
+/// alpha over the window background, so what the eye gets is the
+/// composite, not the overlay — and a fully transparent fill (a lone
+/// title, which has no island) leaves the background itself.
+#[inline]
+fn surface_under(bg: [f32; 4], fill: [f32; 4]) -> [f32; 4] {
+    let mut base = bg;
+    base[3] = 1.0;
+    over(base, fill)
+}
+
+/// Black or white, whichever is further from `background`.
+///
+/// The two meet at 4.58:1, so one of them always clears the floor on any
+/// background there is: the last resort cannot fail.
+#[inline]
+fn best_monochrome(background: [f32; 4]) -> [f32; 4] {
+    let black = [0.0, 0.0, 0.0, 1.0];
+    let white = [1.0, 1.0, 1.0, 1.0];
+    if contrast_ratio(black, background) >= contrast_ratio(white, background) {
+        black
+    } else {
+        white
+    }
+}
+
+/// `preferred` when it can be read on `background`, else the theme's text
+/// colour, else black or white.
+///
+/// A colour that already clears the floor is returned untouched, so a
+/// theme that got this right keeps exactly the colour it chose.
+fn readable_color(preferred: [f32; 4], text: [f32; 4], background: [f32; 4]) -> [f32; 4] {
+    let opaque = |mut c: [f32; 4]| {
+        c[3] = 1.0;
+        c
+    };
+
+    let preferred = opaque(preferred);
+    if contrast_ratio(preferred, background) >= TEXT_CONTRAST_FLOOR {
+        return preferred;
+    }
+
+    let text = opaque(text);
+    if contrast_ratio(text, background) >= TEXT_CONTRAST_FLOOR {
+        return text;
+    }
+
+    best_monochrome(background)
+}
+
+/// The attention amber, moved in brightness until it clears the floor.
+///
+/// "A command finished" is carried by the hue — the point of the mark is
+/// that it reads as neither the theme accent nor plain text — so the
+/// adjustment scales the channels together and leaves the hue alone.
+/// Darkening is tried first because the fills that defeat amber are the
+/// light ones; a background that can read neither a darker nor a lighter
+/// amber gets the same black-or-white treatment as any other text.
+fn readable_attention(background: [f32; 4]) -> [f32; 4] {
+    if contrast_ratio(ATTENTION_COLOR, background) >= TEXT_CONTRAST_FLOOR {
+        return ATTENTION_COLOR;
+    }
+
+    const STEPS: i32 = 32;
+    // Scaling every channel by the same factor keeps their ratios, which
+    // is what keeps the hue: darkening amber stays amber, only deeper.
+    let darker = |k: f32| {
+        [
+            ATTENTION_COLOR[0] * k,
+            ATTENTION_COLOR[1] * k,
+            ATTENTION_COLOR[2] * k,
+            1.0,
+        ]
+    };
+    let lighter = |k: f32| {
+        [
+            ATTENTION_COLOR[0] + (1.0 - ATTENTION_COLOR[0]) * k,
+            ATTENTION_COLOR[1] + (1.0 - ATTENTION_COLOR[1]) * k,
+            ATTENTION_COLOR[2] + (1.0 - ATTENTION_COLOR[2]) * k,
+            1.0,
+        ]
+    };
+
+    for step in 1..=STEPS {
+        let candidate = darker(1.0 - step as f32 / STEPS as f32);
+        if contrast_ratio(candidate, background) >= TEXT_CONTRAST_FLOOR {
+            return candidate;
+        }
+    }
+
+    for step in 1..=STEPS {
+        let candidate = lighter(step as f32 / STEPS as f32);
+        if contrast_ratio(candidate, background) >= TEXT_CONTRAST_FLOOR {
+            return candidate;
+        }
+    }
+
+    best_monochrome(background)
+}
+
 #[allow(clippy::too_many_arguments)]
 fn draw_island(
     sugarloaf: &mut Sugarloaf,
@@ -381,12 +513,19 @@ pub struct Island {
     pub max_tab_width: f32,
     pub inactive_text_color: [f32; 4],
     pub active_text_color: [f32; 4],
+    /// The theme's `[colors] foreground`: the colour a tab's title falls
+    /// back to when its configured one cannot be read on the fill. A
+    /// palette that chose a legible text colour has one by definition.
+    pub foreground: [f32; 4],
     /// What each tab's title shows (`navigation.tab-title`).
     pub tab_title: TabTitle,
     /// Glyph set for the marks (`navigation.tab-glyphs`).
     pub tab_glyphs: TabGlyphs,
     /// Whether the runner animates (`navigation.tab-animation`).
     pub tab_animation: bool,
+    /// Keep strip text above the contrast floor
+    /// (`navigation.tab-text-contrast`).
+    pub tab_text_contrast: bool,
     /// Panes whose command is reporting progress (OSC 9;4). Keyed by
     /// route, not by tab index: a reorder or a close renumbers tabs, and a
     /// runner that followed the wrong one would claim a command is running
@@ -433,6 +572,7 @@ impl Island {
     pub fn new(
         inactive_text_color: [f32; 4],
         active_text_color: [f32; 4],
+        foreground: [f32; 4],
         hide_if_single: bool,
         max_tab_width: f32,
     ) -> Self {
@@ -441,9 +581,11 @@ impl Island {
             max_tab_width,
             inactive_text_color,
             active_text_color,
+            foreground,
             tab_title: TabTitle::default(),
             tab_glyphs: TabGlyphs::default(),
             tab_animation: true,
+            tab_text_contrast: TabTextContrast::default().is_auto(),
             running: FxHashMap::default(),
             flash: None,
             progress_state: None,
@@ -476,9 +618,11 @@ impl Island {
         &mut self,
         inactive_text_color: [f32; 4],
         active_text_color: [f32; 4],
+        foreground: [f32; 4],
     ) {
         self.inactive_text_color = inactive_text_color;
         self.active_text_color = active_text_color;
+        self.foreground = foreground;
     }
 
     /// Reflect `[navigation]`'s tab styling. Called at construction and on
@@ -488,10 +632,36 @@ impl Island {
         tab_title: TabTitle,
         tab_glyphs: TabGlyphs,
         tab_animation: bool,
+        tab_text_contrast: TabTextContrast,
     ) {
         self.tab_title = tab_title;
         self.tab_glyphs = tab_glyphs;
         self.tab_animation = tab_animation;
+        self.tab_text_contrast = tab_text_contrast.is_auto();
+    }
+
+    /// The colour a run in the strip draws in: the configured colour when
+    /// it clears the contrast floor on `surface`, otherwise the nearest
+    /// readable one. With the floor turned off the configured colour is
+    /// drawn whatever it does.
+    #[inline]
+    fn strip_color(&self, preferred: [f32; 4], surface: [f32; 4]) -> [f32; 4] {
+        if self.tab_text_contrast {
+            readable_color(preferred, self.foreground, surface)
+        } else {
+            preferred
+        }
+    }
+
+    /// The colour the completion mark and the flash use on `surface`,
+    /// which is the amber while the amber can be read there.
+    #[inline]
+    fn attention_color(&self, surface: [f32; 4]) -> [f32; 4] {
+        if self.tab_text_contrast {
+            readable_attention(surface)
+        } else {
+            ATTENTION_COLOR
+        }
     }
 
     /// The pane at `route_id` started or stopped reporting progress
@@ -1051,7 +1221,34 @@ impl Island {
             // fill to carry a custom colour, which moves to the text.
             let single = num_tabs == 1;
 
-            let mut text_color = if single {
+            // The fill this tab's text sits on, and what that fill looks
+            // like once it is composited over the window background (a
+            // lone title has no island at all, so its surface is the
+            // background itself). The title colour has to answer to the
+            // surface, not to the overlay: they are different colours.
+            //
+            // A custom color (picker / color-automation) becomes the
+            // island fill: the active tab keeps it vivid while inactive
+            // siblings are muted toward the strip — a white "active"
+            // overlay would bleach custom colors to pastel on light
+            // themes, so the hierarchy is carried by the mute instead.
+            let fill = if single {
+                [0.0, 0.0, 0.0, 0.0]
+            } else {
+                match context_manager.custom_color(tab_index) {
+                    Some(mut custom) => {
+                        if !is_active {
+                            custom[3] *= INACTIVE_CUSTOM_MUTE;
+                        }
+                        custom
+                    }
+                    None if is_active => fills.active,
+                    None => fills.inactive,
+                }
+            };
+            let surface = surface_under(bg_color, fill);
+
+            let preferred = if single {
                 match context_manager.custom_color(tab_index) {
                     Some(mut custom) => {
                         custom[3] = 1.0;
@@ -1064,6 +1261,7 @@ impl Island {
             } else {
                 self.inactive_text_color
             };
+            let mut text_color = self.strip_color(preferred, surface);
 
             let route = context_manager.route_for_tab(tab_index);
 
@@ -1077,8 +1275,12 @@ impl Island {
             // flashes instead. `mark` wins where both could apply: a mark
             // is a standing reminder, a flash is not.
             let flashing = !marked && route.is_some_and(|r| self.is_flashing(r));
+            // Only a mark or a flash draws attention amber, and only
+            // then is it worth working out what amber this surface can
+            // take.
+            let attention = (marked || flashing).then(|| self.attention_color(surface));
             if flashing {
-                text_color = ATTENTION_COLOR;
+                text_color = attention.unwrap_or(ATTENTION_COLOR);
             }
             // The runner and the mark share the slot before the title: a
             // command is either running or finished, never both.
@@ -1096,19 +1298,24 @@ impl Island {
                 color: color_u8(text_color),
                 ..DrawOpts::default()
             };
-            let index_opts = DrawOpts {
-                font_size: TITLE_FONT_SIZE,
-                color: color_u8(with_alpha(text_color, INDEX_ALPHA)),
-                ..DrawOpts::default()
-            };
+            // The position prefix keeps no dimming of its own: fading it
+            // below the title's colour would drop it back under the
+            // contrast floor the title just cleared, and a position the
+            // user cannot read is not scaffolding, it is a missing tab
+            // number. It draws in the title's colour and is held apart by
+            // `MARK_GAP`.
             let glyph_opts = DrawOpts {
                 font_size: TITLE_FONT_SIZE,
-                color: color_u8(if marked { ATTENTION_COLOR } else { text_color }),
+                color: color_u8(if marked {
+                    attention.unwrap_or(ATTENTION_COLOR)
+                } else {
+                    text_color
+                }),
                 ..DrawOpts::default()
             };
 
             let index_width = index_label.as_deref().map_or(0.0, |label| {
-                sugarloaf.text_mut().measure(label, &index_opts) + MARK_GAP
+                sugarloaf.text_mut().measure(label, &title_opts) + MARK_GAP
             });
             let glyph_text = glyph.map(|c| c.to_string());
             let glyph_width = glyph_text.as_deref().map_or(0.0, |g| {
@@ -1151,7 +1358,7 @@ impl Island {
                 let ui = sugarloaf.text_mut();
                 let mut cursor_x = text_x;
                 if let Some(label) = index_label.as_deref() {
-                    ui.draw(cursor_x, text_y, label, &index_opts);
+                    ui.draw(cursor_x, text_y, label, &title_opts);
                     cursor_x += index_width;
                 }
                 if let Some(glyph) = glyph_text.as_deref() {
@@ -1167,28 +1374,9 @@ impl Island {
                 continue;
             }
 
-            // Rounded island for this tab. A custom color (picker /
-            // color-automation) becomes the island fill: the active
-            // tab keeps it vivid while inactive siblings are muted
-            // toward the strip — a white "active" overlay would
-            // bleach custom colors to pastel on light themes, so the
-            // hierarchy is carried by the mute instead.
+            // Rounded island for this tab, painted in the fill the text
+            // above was measured against.
             let (ix, iy, iw, ih, radius) = island_rect(tab_x, tab_width);
-            let fill = match context_manager.custom_color(tab_index) {
-                Some(mut custom) => {
-                    if !is_active {
-                        custom[3] *= INACTIVE_CUSTOM_MUTE;
-                    }
-                    custom
-                }
-                None => {
-                    if is_active {
-                        fills.active
-                    } else {
-                        fills.inactive
-                    }
-                }
-            };
             draw_island(
                 sugarloaf,
                 ix,
@@ -1215,7 +1403,11 @@ impl Island {
                         iy + ih - MARK_UNDERLINE_HEIGHT,
                         underline_width,
                         MARK_UNDERLINE_HEIGHT,
-                        ATTENTION_COLOR,
+                        // The same amber as the mark above it, put
+                        // through the same floor: the line is a 2px bar,
+                        // so a light theme that cannot show amber text
+                        // cannot show an amber bar either.
+                        attention.unwrap_or(ATTENTION_COLOR),
                         0.0,
                         MARK_UNDERLINE_HEIGHT / 2.0,
                         MARK_UNDERLINE_ORDER,
@@ -1241,7 +1433,13 @@ impl Island {
                     draw_close_button(
                         sugarloaf,
                         cx,
-                        self.active_text_color,
+                        // Same floor as the title: the cross was drawn in
+                        // the tab's text colour, so a theme whose titles
+                        // were unreadable had an unclickable-looking
+                        // close button too. Its idle/hover alphas are
+                        // untouched — the cross is a stroke, and staying
+                        // quiet until hovered is what they are for.
+                        self.strip_color(self.active_text_color, surface),
                         self.close_hover,
                         2,
                     );
@@ -1281,6 +1479,7 @@ impl Island {
                     over(base, fills.active)
                 }
             };
+            let drag_surface = surface_under(bg_color, fill);
             draw_island(
                 sugarloaf,
                 ix,
@@ -1295,7 +1494,13 @@ impl Island {
             );
 
             if let Some(cx) = close_button_center(ix, iw) {
-                draw_close_button(sugarloaf, cx, self.active_text_color, false, 12);
+                draw_close_button(
+                    sugarloaf,
+                    cx,
+                    self.strip_color(self.active_text_color, drag_surface),
+                    false,
+                    12,
+                );
             }
 
             let raw_title = self.get_title_for_tab(context_manager, drag_idx);
@@ -1304,7 +1509,9 @@ impl Island {
                 let title = fit_title_to_width(sugarloaf, &raw_title, max_text_width);
                 let title_opts = DrawOpts {
                     font_size: TITLE_FONT_SIZE,
-                    color: color_u8(self.active_text_color),
+                    color: color_u8(
+                        self.strip_color(self.active_text_color, drag_surface),
+                    ),
                     ..DrawOpts::default()
                 };
                 let ui = sugarloaf.text_mut();
@@ -1727,13 +1934,6 @@ impl Island {
     }
 }
 
-/// Fade a colour without touching its hue, for text that is present but
-/// not the point.
-#[inline]
-fn with_alpha(c: [f32; 4], alpha: f32) -> [f32; 4] {
-    [c[0], c[1], c[2], c[3] * alpha]
-}
-
 /// The glyph a tab leads with, if any. The completion mark wins over the
 /// runner: a tab whose command has finished must not keep claiming to be
 /// busy, whatever report was last seen for it.
@@ -1878,11 +2078,147 @@ mod tests {
     }
 
     #[test]
+    fn contrast_ratio_matches_wcag_anchors() {
+        let black = [0.0, 0.0, 0.0, 1.0];
+        let white = [1.0, 1.0, 1.0, 1.0];
+        assert!((contrast_ratio(black, white) - 21.0).abs() < 0.01);
+        assert!((contrast_ratio(black, black) - 1.0).abs() < 1e-6);
+        // Symmetric: the ratio is a distance, not a difference.
+        assert!((contrast_ratio(white, black) - 21.0).abs() < 0.01);
+        // #767676 on white is the canonical AA boundary at 4.54:1.
+        let grey = [0.4627, 0.4627, 0.4627, 1.0];
+        assert!((contrast_ratio(grey, white) - 4.54).abs() < 0.02);
+    }
+
+    /// The regression this fixes, stated as a fact about the shipped
+    /// palettes: their inactive title colour is the fill's own colour, so
+    /// the tab was drawn with no name at all.
+    ///
+    /// The palette is asserted rather than only the renderer on purpose —
+    /// if a future palette fixes the pair by hand, this test says so
+    /// instead of silently covering for a strip that still can't draw.
+    #[test]
+    fn the_shipped_palettes_drew_their_inactive_titles_invisibly() {
+        use mario_backend::config::colors::Colors;
+
+        for colors in [Colors::rose_pine_dawn(), Colors::rose_pine_moon()] {
+            let surface = surface_under(
+                colors.background.0,
+                island_fills(colors.background.0).inactive,
+            );
+            assert!(
+                contrast_ratio(colors.tabs, surface) < TEXT_CONTRAST_FLOOR,
+                "palette no longer shows the bug"
+            );
+
+            // What the strip draws instead, and why it is the palette's
+            // own text colour that rescues it: `[colors] foreground` is
+            // the colour its author already checked against the
+            // background.
+            let drawn = readable_color(colors.tabs, colors.foreground, surface);
+            assert!(contrast_ratio(drawn, surface) >= TEXT_CONTRAST_FLOOR);
+            assert_eq!(drawn, colors.foreground);
+        }
+    }
+
+    /// The floor adjusts nothing that does not need adjusting: a theme
+    /// that got it right keeps the exact colour it chose, alpha and all
+    /// resolved to opaque.
+    #[test]
+    fn a_colour_that_already_reads_is_left_alone() {
+        let white = [1.0, 1.0, 1.0, 1.0];
+        let black = [0.0, 0.0, 0.0, 1.0];
+        assert_eq!(readable_color(black, [0.5, 0.5, 0.5, 1.0], white), black);
+
+        // A translucent pick is a colour choice, not a request for a
+        // translucent glyph: contrast is measured on what is drawn.
+        let translucent = [0.0, 0.0, 0.0, 0.4];
+        assert_eq!(readable_color(translucent, black, white), black);
+
+        // The theme's text colour is only reached for when the first
+        // choice fails.
+        let unreadable = [0.99, 0.99, 0.99, 1.0];
+        assert_eq!(readable_color(unreadable, black, white), black);
+    }
+
+    /// Black and white meet at 4.58:1, so the last resort clears the floor
+    /// on every background there is — the strip can never be left with a
+    /// colour it cannot draw.
+    #[test]
+    fn the_last_resort_is_always_readable() {
+        for step in 0..=100 {
+            let v = step as f32 / 100.0;
+            let background = [v, v, v, 1.0];
+            let drawn = readable_color(background, background, background);
+            assert!(
+                contrast_ratio(drawn, background) >= TEXT_CONTRAST_FLOOR,
+                "no readable fallback for luminance {v}"
+            );
+            assert!(drawn == [0.0, 0.0, 0.0, 1.0] || drawn == [1.0, 1.0, 1.0, 1.0]);
+        }
+    }
+
+    /// The mark's meaning is its hue: "a command finished" must not arrive
+    /// as a grey glyph, so the amber is moved in brightness, not replaced.
+    #[test]
+    fn the_attention_mark_stays_amber_on_a_light_fill() {
+        // The light theme's inactive island: amber reads at 2.03:1 there.
+        let light_bg = [0.98, 0.96, 0.93, 1.0];
+        let light = surface_under(light_bg, island_fills(light_bg).inactive);
+        assert!(contrast_ratio(ATTENTION_COLOR, light) < TEXT_CONTRAST_FLOOR);
+
+        let drawn = readable_attention(light);
+        assert!(contrast_ratio(drawn, light) >= TEXT_CONTRAST_FLOOR);
+        // Still amber: the channels keep their order and their ratios.
+        assert!(drawn[0] > drawn[1] && drawn[1] > drawn[2]);
+        assert!(
+            (drawn[0] / drawn[2] - ATTENTION_COLOR[0] / ATTENTION_COLOR[2]).abs() < 1e-3
+        );
+
+        // A dark island takes the amber as it is.
+        let dark_bg = [0.14, 0.13, 0.21, 1.0];
+        let dark = surface_under(dark_bg, island_fills(dark_bg).inactive);
+        assert_eq!(readable_attention(dark), ATTENTION_COLOR);
+    }
+
+    /// The opt-out is the whole of the escape hatch: with it set, every
+    /// run in the strip draws the configured colour, unreadable or not.
+    #[test]
+    fn tab_text_contrast_off_draws_the_configured_colour() {
+        let mut island = test_island();
+        island.inactive_text_color = [0.9, 0.9, 0.9, 0.9];
+        let white = [1.0, 1.0, 1.0, 1.0];
+
+        assert!(island.tab_text_contrast);
+        let drawn = island.strip_color(island.inactive_text_color, white);
+        assert!(contrast_ratio(drawn, white) >= TEXT_CONTRAST_FLOOR);
+        assert_ne!(drawn, island.inactive_text_color);
+
+        island.set_tab_style(
+            TabTitle::IndexAndTitle,
+            TabGlyphs::Unicode,
+            true,
+            TabTextContrast::Off,
+        );
+        assert_eq!(
+            island.strip_color(island.inactive_text_color, white),
+            [0.9, 0.9, 0.9, 0.9]
+        );
+        assert_eq!(island.attention_color(white), ATTENTION_COLOR);
+    }
+
+    #[test]
     fn test_island_initialization() {
         let inactive_color = [0.5, 0.5, 0.5, 1.0];
         let active_color = [0.9, 0.9, 0.9, 1.0];
 
-        let island = Island::new(inactive_color, active_color, true, 240.0);
+        let island = Island::new(
+            inactive_color,
+            active_color,
+            [1.0, 1.0, 1.0, 1.0],
+            true,
+            240.0,
+        );
 
         assert_eq!(island.inactive_text_color, inactive_color);
         assert_eq!(island.active_text_color, active_color);
@@ -1891,13 +2227,24 @@ mod tests {
 
     #[test]
     fn test_island_height() {
-        let island =
-            Island::new([0.8, 0.8, 0.8, 1.0], [1.0, 1.0, 1.0, 1.0], false, 240.0);
+        let island = Island::new(
+            [0.8, 0.8, 0.8, 1.0],
+            [1.0, 1.0, 1.0, 1.0],
+            [1.0, 1.0, 1.0, 1.0],
+            false,
+            240.0,
+        );
         assert_eq!(island.height(), ISLAND_HEIGHT);
     }
 
     fn test_island() -> Island {
-        Island::new([0.5, 0.5, 0.5, 1.0], [0.9, 0.9, 0.9, 1.0], false, 240.0)
+        Island::new(
+            [0.5, 0.5, 0.5, 1.0],
+            [0.9, 0.9, 0.9, 1.0],
+            [1.0, 1.0, 1.0, 1.0],
+            false,
+            240.0,
+        )
     }
 
     /// A tab that flickers a runner on every `ls` is worse than one that
@@ -1933,7 +2280,12 @@ mod tests {
 
         // With animation off the runner still says "running", it just
         // stands still — which is the point of the setting.
-        island.set_tab_style(TabTitle::IndexAndTitle, TabGlyphs::Unicode, false);
+        island.set_tab_style(
+            TabTitle::IndexAndTitle,
+            TabGlyphs::Unicode,
+            false,
+            TabTextContrast::Auto,
+        );
         assert_eq!(
             island.runner_frame_after(RUNNER_GRACE_MILLIS),
             Some(frames[0])
@@ -1947,7 +2299,12 @@ mod tests {
     #[test]
     fn runner_follows_the_configured_glyph_set() {
         let mut island = test_island();
-        island.set_tab_style(TabTitle::IndexAndTitle, TabGlyphs::Ascii, true);
+        island.set_tab_style(
+            TabTitle::IndexAndTitle,
+            TabGlyphs::Ascii,
+            true,
+            TabTextContrast::Auto,
+        );
         let frame = island.runner_frame_after(RUNNER_GRACE_MILLIS).unwrap();
         assert!(frame.is_ascii());
         assert!(TabGlyphs::Ascii.spinner_frames().contains(&frame));

@@ -231,6 +231,7 @@ impl Renderer {
             let mut island = island::Island::new(
                 named_colors.tabs,
                 named_colors.tabs_active,
+                named_colors.foreground,
                 config.navigation.hide_if_single,
                 config.navigation.max_tab_width,
             );
@@ -238,6 +239,7 @@ impl Renderer {
                 config.navigation.tab_title,
                 config.navigation.tab_glyphs,
                 config.navigation.tab_animation,
+                config.navigation.tab_text_contrast,
             );
             Some(island)
         } else {

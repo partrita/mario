@@ -245,6 +245,72 @@ impl std::str::FromStr for TabGlyphs {
     }
 }
 
+/// Whether the strip keeps its titles readable whatever the theme does.
+///
+/// The tab fills are derived from the window background, while the title
+/// colours come from `[colors] tabs` / `tabs-active` — two sources that
+/// have no reason to agree. A theme whose `tabs` happens to match the
+/// derived fill draws its inactive titles invisibly, which is exactly what
+/// the shipped `rose-pine-dawn` and `rose-pine-moon` palettes did.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy)]
+pub enum TabTextContrast {
+    /// Nudge a title (or a mark) toward the theme's text colour, black or
+    /// white until it clears the WCAG AA floor against the fill behind
+    /// it. A colour that already clears the floor is left alone.
+    #[serde(rename = "auto")]
+    Auto,
+    /// Draw the configured colours as they are, floor and all — for a
+    /// theme that means its `tabs` colour deliberately.
+    #[serde(rename = "off")]
+    Off,
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for TabTextContrast {
+    fn default() -> TabTextContrast {
+        TabTextContrast::Auto
+    }
+}
+
+impl TabTextContrast {
+    const AUTO_STR: &'static str = "auto";
+    const OFF_STR: &'static str = "off";
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Auto => Self::AUTO_STR,
+            Self::Off => Self::OFF_STR,
+        }
+    }
+
+    /// Whether the strip computes a readable colour at draw time.
+    #[inline]
+    pub fn is_auto(&self) -> bool {
+        matches!(self, Self::Auto)
+    }
+}
+
+impl std::fmt::Display for TabTextContrast {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseTabTextContrastError;
+
+impl std::str::FromStr for TabTextContrast {
+    type Err = ParseTabTextContrastError;
+
+    fn from_str(s: &str) -> Result<TabTextContrast, ParseTabTextContrastError> {
+        match s {
+            Self::AUTO_STR => Ok(TabTextContrast::Auto),
+            Self::OFF_STR => Ok(TabTextContrast::Off),
+            _ => Ok(TabTextContrast::default()),
+        }
+    }
+}
+
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct ColorAutomation {
     #[serde(default = "String::new")]
@@ -318,6 +384,11 @@ pub struct Navigation {
     /// option on a remote display or a machine already at capacity.
     #[serde(default = "default_bool_true", rename = "tab-animation")]
     pub tab_animation: bool,
+    /// Keep a tab's title readable against the fill behind it. `auto`
+    /// (the default) floors the contrast of every run in the strip;
+    /// `off` draws `[colors] tabs` / `tabs-active` exactly as written.
+    #[serde(default = "TabTextContrast::default", rename = "tab-text-contrast")]
+    pub tab_text_contrast: TabTextContrast,
 }
 
 impl Default for Navigation {
@@ -337,6 +408,7 @@ impl Default for Navigation {
             tab_title: TabTitle::default(),
             tab_glyphs: TabGlyphs::default(),
             tab_animation: true,
+            tab_text_contrast: TabTextContrast::default(),
         }
     }
 }
@@ -443,7 +515,9 @@ mod tests {
     }
 
     use crate::config::colors::hex_to_color_arr;
-    use crate::config::navigation::{Navigation, NavigationMode, TabGlyphs, TabTitle};
+    use crate::config::navigation::{
+        Navigation, NavigationMode, TabGlyphs, TabTextContrast, TabTitle,
+    };
     use serde::Deserialize;
 
     #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -568,6 +642,35 @@ mod tests {
             TabGlyphs::Unicode.spinner_frames(),
             TabGlyphs::Ascii.spinner_frames()
         );
+    }
+
+    /// The contrast floor is opt-out, not opt-in: an unreadable tab is a
+    /// bug, so `auto` has to be what an untouched config gets.
+    #[test]
+    fn tab_text_contrast_is_auto_unless_asked_otherwise() {
+        let default = toml::from_str::<Root>("[navigation]\nmode = 'Tab'\n").unwrap();
+        assert_eq!(default.navigation.tab_text_contrast, TabTextContrast::Auto);
+        assert!(default.navigation.tab_text_contrast.is_auto());
+
+        let off =
+            toml::from_str::<Root>("[navigation]\ntab-text-contrast = 'off'\n").unwrap();
+        assert_eq!(off.navigation.tab_text_contrast, TabTextContrast::Off);
+        assert!(!off.navigation.tab_text_contrast.is_auto());
+
+        let auto =
+            toml::from_str::<Root>("[navigation]\ntab-text-contrast = 'auto'\n").unwrap();
+        assert!(auto.navigation.tab_text_contrast.is_auto());
+
+        // An unknown spelling is a load error, the same as it is for
+        // `tab-title` and `tab-glyphs`: a typo in a setting that decides
+        // how the strip is drawn should be reported, not guessed at.
+        assert!(
+            toml::from_str::<Root>("[navigation]\ntab-text-contrast = 'nope'\n").is_err()
+        );
+
+        for mode in [TabTextContrast::Auto, TabTextContrast::Off] {
+            assert_eq!(mode.as_str().parse::<TabTextContrast>().unwrap(), mode);
+        }
     }
 
     #[test]

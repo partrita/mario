@@ -116,6 +116,8 @@ pub struct PlatformNavigation {
     pub tab_glyphs: Option<navigation::TabGlyphs>,
     #[serde(default = "Option::default", rename = "tab-animation")]
     pub tab_animation: Option<bool>,
+    #[serde(default = "Option::default", rename = "tab-text-contrast")]
+    pub tab_text_contrast: Option<navigation::TabTextContrast>,
 }
 
 /// Platform-specific renderer config with optional fields for selective override

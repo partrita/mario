@@ -228,11 +228,14 @@ Colors are specified using their hexadecimal values with a _#_ prefix: _#RRGGBB_
 *tabs* = _"<string>"_
 
 	Inactive tab title color. Tab island backgrounds are derived from
-	the window background color automatically.
+	the window background color automatically, so this has to be a
+	color that can be read on the fill that produces: one that cannot
+	is replaced at draw time unless *tab-text-contrast* is _"off"_.
 
 *tabs-active* = _"<string>"_
 
-	Active tab title color.
+	Active tab title color, read on the active tab's fill. Same rule as
+	*tabs*.
 
 *split* = _"<string>"_
 
@@ -325,6 +328,55 @@ Default: _"Tab"_
 *color-automation* = [{ program = _"<string>"_, path = _"<string>"_, color = _"<string>"_ },]
 
 	Automatic color assignment based on program or path.
+
+*tab-title* = _"index+title"_ | _"title"_ | _"path"_
+
+	What a tab's title shows. _"index+title"_ (the default) leads with
+	the tab's 1-based position, drawn by the tab strip itself so that
+	narrow tabs cannot truncate the address away, then the title the
+	pane set. _"title"_ drops the position. _"path"_ restores the
+	pre-0.5.31 look: no position, and the working directory when the
+	pane sets no title of its own.
+
+	Default: _"index+title"_
+
+*tab-glyphs* = _"unicode"_ | _"ascii"_
+
+	Glyph set for the running indicator in a tab. _"unicode"_ (the
+	default) uses Braille dots, which need a font that carries them;
+	_"ascii"_ uses _|/-\_ for fonts that do not.
+
+	Default: _"unicode"_
+
+*tab-animation* = _true_ | _false_
+
+	Animate the running indicator. When _false_, a tab still shows that
+	its command is running, but the frames stand still — the cheap
+	option on a remote display or a machine already at capacity.
+
+	Default: _true_
+
+*tab-text-contrast* = _"auto"_ | _"off"_
+
+	Keep tab titles readable whatever the theme does. Tab island
+	backgrounds are derived from the window background, while tab title
+	colors come from *tabs* and *tabs-active* — two sources that need
+	not agree, and a theme where they collide draws its tab names in
+	the fill's own color.
+
+	With _"auto"_ (the default), any run in the strip that falls below
+	the WCAG AA contrast ratio of 4.5:1 against the fill behind it is
+	drawn in the theme's *foreground* color instead, or in black or
+	white if that fails too. Colors that already clear the ratio are
+	left exactly as they are. The completion mark is moved in
+	brightness rather than replaced, so it stays amber. This applies to
+	the whole strip: titles, the position prefix, marks, the running
+	indicator, the close button, and both explicitly configured colors
+	and *color-automation* ones.
+
+	_"off"_ draws the configured colors exactly as written.
+
+	Default: _"auto"_
 
 # SHELL
 

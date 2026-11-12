@@ -674,6 +674,9 @@ impl Config {
             if let Some(tab_animation) = navigation_overwrite.tab_animation {
                 self.navigation.tab_animation = tab_animation;
             }
+            if let Some(tab_text_contrast) = navigation_overwrite.tab_text_contrast {
+                self.navigation.tab_text_contrast = tab_text_contrast;
+            }
         }
 
         // Clamp after platform merge so both the base and any override go
